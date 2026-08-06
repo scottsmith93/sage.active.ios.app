@@ -1,0 +1,598 @@
+{
+  "schemaVersion": "1.0",
+  "scenario": {
+    "id": "casa-norte-spain-2026-08",
+    "name": "Casa Norte Studio — Spain prototype",
+    "referenceDateTime": "2026-08-06T09:42:00+02:00",
+    "timeZone": "Europe/Madrid",
+    "locale": "es-ES",
+    "currency": "EUR",
+    "fictionalData": true,
+    "lastUpdatedDateTime": "2026-08-06T09:42:00+02:00",
+    "freshnessStatus": "current"
+  },
+  "business": {
+    "id": "business-casa-norte",
+    "legalName": "Casa Norte Studio S.L.",
+    "displayName": "Casa Norte Studio",
+    "countryCode": "ES",
+    "taxIdentifier": "B-12345678",
+    "fiscalYear": {
+      "startMonth": 1,
+      "startDay": 1
+    },
+    "standardIvaRateBasisPoints": 2100
+  },
+  "displayDefaults": {
+    "homeMode": "overview",
+    "includeIvaInAnalytics": true,
+    "bankForecastRange": "month",
+    "insightsPeriodType": "month",
+    "insightsSelectedPeriod": "2026-08"
+  },
+  "bankAccounts": [
+    {
+      "id": "account-santander-4821",
+      "institutionName": "Santander",
+      "logoAssetKey": "bank-santander",
+      "accountName": "Business Current Account",
+      "maskedIdentifier": "•••• 4821",
+      "balanceCents": 2750000,
+      "connectionStatus": "connected",
+      "lastUpdatedDateTime": "2026-08-06T09:41:00+02:00"
+    },
+    {
+      "id": "account-bbva-1936",
+      "institutionName": "BBVA",
+      "logoAssetKey": "bank-bbva",
+      "accountName": "Business Savings",
+      "maskedIdentifier": "•••• 1936",
+      "balanceCents": 1575000,
+      "connectionStatus": "connected",
+      "lastUpdatedDateTime": "2026-08-06T09:40:00+02:00"
+    },
+    {
+      "id": "account-caixabank-7054",
+      "institutionName": "CaixaBank",
+      "logoAssetKey": "bank-caixabank",
+      "accountName": "Operating Account",
+      "maskedIdentifier": "•••• 7054",
+      "balanceCents": 500000,
+      "connectionStatus": "connected",
+      "lastUpdatedDateTime": "2026-08-06T09:39:00+02:00"
+    }
+  ],
+  "bankBalanceHistory": [
+    { "date": "2026-07-08", "balanceCents": 4595238 },
+    { "date": "2026-07-09", "balanceCents": 4587600 },
+    { "date": "2026-07-10", "balanceCents": 4612500 },
+    { "date": "2026-07-11", "balanceCents": 4608800 },
+    { "date": "2026-07-12", "balanceCents": 4623400 },
+    { "date": "2026-07-13", "balanceCents": 4649100 },
+    { "date": "2026-07-14", "balanceCents": 4632000 },
+    { "date": "2026-07-15", "balanceCents": 4667500 },
+    { "date": "2026-07-16", "balanceCents": 4654800 },
+    { "date": "2026-07-17", "balanceCents": 4679200 },
+    { "date": "2026-07-18", "balanceCents": 4691000 },
+    { "date": "2026-07-19", "balanceCents": 4683600 },
+    { "date": "2026-07-20", "balanceCents": 4708200 },
+    { "date": "2026-07-21", "balanceCents": 4694500 },
+    { "date": "2026-07-22", "balanceCents": 4719800 },
+    { "date": "2026-07-23", "balanceCents": 4732400 },
+    { "date": "2026-07-24", "balanceCents": 4726100 },
+    { "date": "2026-07-25", "balanceCents": 4749000 },
+    { "date": "2026-07-26", "balanceCents": 4761500 },
+    { "date": "2026-07-27", "balanceCents": 4754200 },
+    { "date": "2026-07-28", "balanceCents": 4778000 },
+    { "date": "2026-07-29", "balanceCents": 4792500 },
+    { "date": "2026-07-30", "balanceCents": 4786800 },
+    { "date": "2026-07-31", "balanceCents": 4803400 },
+    { "date": "2026-08-01", "balanceCents": 4797200 },
+    { "date": "2026-08-02", "balanceCents": 4811500 },
+    { "date": "2026-08-03", "balanceCents": 4804800 },
+    { "date": "2026-08-04", "balanceCents": 4829200 },
+    { "date": "2026-08-05", "balanceCents": 4817600 },
+    { "date": "2026-08-06", "balanceCents": 4825000 }
+  ],
+  "customers": [
+    { "id": "customer-solera", "name": "Solera Retail S.L." },
+    { "id": "customer-mar-azul", "name": "Mar Azul Hotels S.A." },
+    { "id": "customer-camino", "name": "Camino Works S.L." },
+    { "id": "customer-norte-digital", "name": "Norte Digital S.L." },
+    { "id": "customer-estudio-central", "name": "Estudio Central S.L." },
+    { "id": "customer-luz-verde", "name": "Luz Verde Energía S.L." },
+    { "id": "customer-mercado-sur", "name": "Mercado Sur S.A." },
+    { "id": "customer-puerto-labs", "name": "Puerto Labs S.L." },
+    { "id": "customer-taller-ocho", "name": "Taller Ocho S.L." },
+    { "id": "customer-rio-claro", "name": "Río Claro Consulting S.L." },
+    { "id": "customer-plaza-nueva", "name": "Plaza Nueva Retail S.L." },
+    { "id": "customer-alba-foods", "name": "Alba Foods S.A." }
+  ],
+  "suppliers": [
+    { "id": "supplier-nube", "name": "Nube Sistemas S.L." },
+    { "id": "supplier-papel", "name": "Papel y Forma S.L." },
+    { "id": "supplier-espacio", "name": "Espacio Norte S.A." },
+    { "id": "supplier-movilidad", "name": "Movilidad Centro S.L." },
+    { "id": "supplier-legal", "name": "Legal Ibérica S.L." },
+    { "id": "supplier-luz", "name": "Luz Urbana Energía S.A." },
+    { "id": "supplier-talento", "name": "Talento Freelance S.L." },
+    { "id": "supplier-imprenta", "name": "Imprenta Sur S.L." },
+    { "id": "supplier-datos", "name": "Datos Seguros S.L." }
+  ],
+  "catalogItems": [
+    { "id": "item-strategy-workshop", "name": "Strategy workshop", "kind": "service", "unit": "session" },
+    { "id": "item-design-package", "name": "Design package", "kind": "service", "unit": "package" },
+    { "id": "item-support-subscription", "name": "Support subscription", "kind": "service", "unit": "subscription" },
+    { "id": "item-training-session", "name": "Training session", "kind": "service", "unit": "session" },
+    { "id": "item-research-package", "name": "Research package", "kind": "service", "unit": "package" },
+    { "id": "item-audit-session", "name": "Audit session", "kind": "service", "unit": "session" },
+    { "id": "item-content-package", "name": "Content package", "kind": "service", "unit": "package" },
+    { "id": "item-prototype-review", "name": "Prototype review", "kind": "service", "unit": "session" },
+    { "id": "item-onboarding-package", "name": "Onboarding package", "kind": "service", "unit": "package" },
+    { "id": "item-accessibility-review", "name": "Accessibility review", "kind": "service", "unit": "review" }
+  ],
+  "salesInvoices": [
+    {
+      "id": "sales-SI-2026-041",
+      "number": "SI-2026-041",
+      "customerId": "customer-solera",
+      "status": "partially_paid",
+      "issueDate": "2026-06-01",
+      "dueDate": "2026-07-01",
+      "expectedCashDate": "2026-08-09",
+      "netTotalCents": 148760,
+      "ivaTotalCents": 31240,
+      "grossTotalCents": 180000,
+      "amountPaidCents": 60000,
+      "remainingAmountCents": 120000,
+      "lineItems": [
+        { "catalogItemId": "item-design-package", "quantity": 1, "netAmountCents": 148760 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-044",
+      "number": "SI-2026-044",
+      "customerId": "customer-mar-azul",
+      "status": "issued",
+      "issueDate": "2026-06-20",
+      "dueDate": "2026-07-20",
+      "expectedCashDate": "2026-08-14",
+      "netTotalCents": 61983,
+      "ivaTotalCents": 13017,
+      "grossTotalCents": 75000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 75000,
+      "lineItems": [
+        { "catalogItemId": "item-support-subscription", "quantity": 1, "netAmountCents": 61983 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-052",
+      "number": "SI-2026-052",
+      "customerId": "customer-camino",
+      "status": "issued",
+      "issueDate": "2026-07-05",
+      "dueDate": "2026-08-04",
+      "expectedCashDate": "2026-08-08",
+      "netTotalCents": 37190,
+      "ivaTotalCents": 7810,
+      "grossTotalCents": 45000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 45000,
+      "lineItems": [
+        { "catalogItemId": "item-training-session", "quantity": 1, "netAmountCents": 37190 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-054",
+      "number": "SI-2026-054",
+      "customerId": "customer-norte-digital",
+      "status": "issued",
+      "issueDate": "2026-07-07",
+      "dueDate": "2026-08-06",
+      "expectedCashDate": "2026-08-10",
+      "netTotalCents": 78512,
+      "ivaTotalCents": 16488,
+      "grossTotalCents": 95000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 95000,
+      "lineItems": [
+        { "catalogItemId": "item-strategy-workshop", "quantity": 1, "netAmountCents": 78512 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-056",
+      "number": "SI-2026-056",
+      "customerId": "customer-estudio-central",
+      "status": "issued",
+      "issueDate": "2026-07-10",
+      "dueDate": "2026-08-09",
+      "expectedCashDate": "2026-08-12",
+      "netTotalCents": 66116,
+      "ivaTotalCents": 13884,
+      "grossTotalCents": 80000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 80000,
+      "lineItems": [
+        { "catalogItemId": "item-research-package", "quantity": 1, "netAmountCents": 66116 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-058",
+      "number": "SI-2026-058",
+      "customerId": "customer-luz-verde",
+      "status": "issued",
+      "issueDate": "2026-07-12",
+      "dueDate": "2026-08-11",
+      "expectedCashDate": "2026-08-13",
+      "netTotalCents": 57851,
+      "ivaTotalCents": 12149,
+      "grossTotalCents": 70000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 70000,
+      "lineItems": [
+        { "catalogItemId": "item-support-subscription", "quantity": 1, "netAmountCents": 57851 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-060",
+      "number": "SI-2026-060",
+      "customerId": "customer-mercado-sur",
+      "status": "issued",
+      "issueDate": "2026-07-14",
+      "dueDate": "2026-08-13",
+      "expectedCashDate": "2026-08-18",
+      "netTotalCents": 53719,
+      "ivaTotalCents": 11281,
+      "grossTotalCents": 65000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 65000,
+      "lineItems": [
+        { "catalogItemId": "item-training-session", "quantity": 1, "netAmountCents": 53719 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-063",
+      "number": "SI-2026-063",
+      "customerId": "customer-puerto-labs",
+      "status": "issued",
+      "issueDate": "2026-07-21",
+      "dueDate": "2026-08-20",
+      "expectedCashDate": "2026-08-24",
+      "netTotalCents": 103306,
+      "ivaTotalCents": 21694,
+      "grossTotalCents": 125000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 125000,
+      "lineItems": [
+        { "catalogItemId": "item-design-package", "quantity": 1, "netAmountCents": 103306 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-065",
+      "number": "SI-2026-065",
+      "customerId": "customer-taller-ocho",
+      "status": "issued",
+      "issueDate": "2026-07-25",
+      "dueDate": "2026-09-03",
+      "expectedCashDate": "2026-09-05",
+      "netTotalCents": 82645,
+      "ivaTotalCents": 17355,
+      "grossTotalCents": 100000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 100000,
+      "lineItems": [
+        { "catalogItemId": "item-strategy-workshop", "quantity": 1, "netAmountCents": 82645 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-067",
+      "number": "SI-2026-067",
+      "customerId": "customer-rio-claro",
+      "status": "issued",
+      "issueDate": "2026-08-01",
+      "dueDate": "2026-09-10",
+      "expectedCashDate": "2026-09-15",
+      "netTotalCents": 70248,
+      "ivaTotalCents": 14752,
+      "grossTotalCents": 85000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 85000,
+      "lineItems": [
+        { "catalogItemId": "item-accessibility-review", "quantity": 1, "netAmountCents": 70248 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-069",
+      "number": "SI-2026-069",
+      "customerId": "customer-plaza-nueva",
+      "status": "issued",
+      "issueDate": "2026-08-02",
+      "dueDate": "2026-10-01",
+      "expectedCashDate": "2026-10-05",
+      "netTotalCents": 61983,
+      "ivaTotalCents": 13017,
+      "grossTotalCents": 75000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 75000,
+      "lineItems": [
+        { "catalogItemId": "item-prototype-review", "quantity": 1, "netAmountCents": 61983 }
+      ]
+    },
+    {
+      "id": "sales-SI-2026-071",
+      "number": "SI-2026-071",
+      "customerId": "customer-alba-foods",
+      "status": "issued",
+      "issueDate": "2026-08-04",
+      "dueDate": "2026-11-01",
+      "expectedCashDate": "2026-11-05",
+      "netTotalCents": 53719,
+      "ivaTotalCents": 11281,
+      "grossTotalCents": 65000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 65000,
+      "lineItems": [
+        { "catalogItemId": "item-content-package", "quantity": 1, "netAmountCents": 53719 }
+      ]
+    }
+  ],
+  "purchaseInvoices": [
+    {
+      "id": "purchase-PI-2026-118",
+      "number": "PI-2026-118",
+      "supplierId": "supplier-nube",
+      "status": "issued",
+      "issueDate": "2026-06-10",
+      "dueDate": "2026-07-10",
+      "expectedCashDate": "2026-08-09",
+      "netTotalCents": 57851,
+      "ivaTotalCents": 12149,
+      "grossTotalCents": 70000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 70000
+    },
+    {
+      "id": "purchase-PI-2026-124",
+      "number": "PI-2026-124",
+      "supplierId": "supplier-papel",
+      "status": "issued",
+      "issueDate": "2026-07-01",
+      "dueDate": "2026-07-31",
+      "expectedCashDate": "2026-08-08",
+      "netTotalCents": 37190,
+      "ivaTotalCents": 7810,
+      "grossTotalCents": 45000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 45000
+    },
+    {
+      "id": "purchase-PI-2026-127",
+      "number": "PI-2026-127",
+      "supplierId": "supplier-espacio",
+      "status": "issued",
+      "issueDate": "2026-07-07",
+      "dueDate": "2026-08-06",
+      "expectedCashDate": "2026-08-07",
+      "netTotalCents": 82645,
+      "ivaTotalCents": 17355,
+      "grossTotalCents": 100000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 100000
+    },
+    {
+      "id": "purchase-PI-2026-129",
+      "number": "PI-2026-129",
+      "supplierId": "supplier-movilidad",
+      "status": "issued",
+      "issueDate": "2026-07-09",
+      "dueDate": "2026-08-08",
+      "expectedCashDate": "2026-08-11",
+      "netTotalCents": 74380,
+      "ivaTotalCents": 15620,
+      "grossTotalCents": 90000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 90000
+    },
+    {
+      "id": "purchase-PI-2026-132",
+      "number": "PI-2026-132",
+      "supplierId": "supplier-legal",
+      "status": "issued",
+      "issueDate": "2026-07-13",
+      "dueDate": "2026-08-12",
+      "expectedCashDate": "2026-08-13",
+      "netTotalCents": 66116,
+      "ivaTotalCents": 13884,
+      "grossTotalCents": 80000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 80000
+    },
+    {
+      "id": "purchase-PI-2026-135",
+      "number": "PI-2026-135",
+      "supplierId": "supplier-luz",
+      "status": "issued",
+      "issueDate": "2026-07-16",
+      "dueDate": "2026-08-20",
+      "expectedCashDate": "2026-08-20",
+      "netTotalCents": 99174,
+      "ivaTotalCents": 20826,
+      "grossTotalCents": 120000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 120000
+    },
+    {
+      "id": "purchase-PI-2026-138",
+      "number": "PI-2026-138",
+      "supplierId": "supplier-talento",
+      "status": "issued",
+      "issueDate": "2026-07-28",
+      "dueDate": "2026-09-07",
+      "expectedCashDate": "2026-09-07",
+      "netTotalCents": 82645,
+      "ivaTotalCents": 17355,
+      "grossTotalCents": 100000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 100000
+    },
+    {
+      "id": "purchase-PI-2026-141",
+      "number": "PI-2026-141",
+      "supplierId": "supplier-imprenta",
+      "status": "issued",
+      "issueDate": "2026-08-01",
+      "dueDate": "2026-10-07",
+      "expectedCashDate": "2026-10-07",
+      "netTotalCents": 57851,
+      "ivaTotalCents": 12149,
+      "grossTotalCents": 70000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 70000
+    },
+    {
+      "id": "purchase-PI-2026-143",
+      "number": "PI-2026-143",
+      "supplierId": "supplier-datos",
+      "status": "issued",
+      "issueDate": "2026-08-03",
+      "dueDate": "2026-11-07",
+      "expectedCashDate": "2026-11-07",
+      "netTotalCents": 49587,
+      "ivaTotalCents": 10413,
+      "grossTotalCents": 60000,
+      "amountPaidCents": 0,
+      "remainingAmountCents": 60000
+    }
+  ],
+  "historicalPerformance": [
+    { "period": "2025-01", "revenueNetCents": 2410000, "revenueIvaCents": 506100, "revenueGrossCents": 2916100, "purchasesNetCents": 1420000, "purchasesIvaCents": 298200, "purchasesGrossCents": 1718200 },
+    { "period": "2025-02", "revenueNetCents": 2520000, "revenueIvaCents": 529200, "revenueGrossCents": 3049200, "purchasesNetCents": 1480000, "purchasesIvaCents": 310800, "purchasesGrossCents": 1790800 },
+    { "period": "2025-03", "revenueNetCents": 2680000, "revenueIvaCents": 562800, "revenueGrossCents": 3242800, "purchasesNetCents": 1510000, "purchasesIvaCents": 317100, "purchasesGrossCents": 1827100 },
+    { "period": "2025-04", "revenueNetCents": 2590000, "revenueIvaCents": 543900, "revenueGrossCents": 3133900, "purchasesNetCents": 1630000, "purchasesIvaCents": 342300, "purchasesGrossCents": 1972300 },
+    { "period": "2025-05", "revenueNetCents": 2770000, "revenueIvaCents": 581700, "revenueGrossCents": 3351700, "purchasesNetCents": 1580000, "purchasesIvaCents": 331800, "purchasesGrossCents": 1911800 },
+    { "period": "2025-06", "revenueNetCents": 2860000, "revenueIvaCents": 600600, "revenueGrossCents": 3460600, "purchasesNetCents": 1690000, "purchasesIvaCents": 354900, "purchasesGrossCents": 2044900 },
+    { "period": "2025-07", "revenueNetCents": 3010000, "revenueIvaCents": 632100, "revenueGrossCents": 3642100, "purchasesNetCents": 1770000, "purchasesIvaCents": 371700, "purchasesGrossCents": 2141700 },
+    { "period": "2025-08", "revenueNetCents": 2940000, "revenueIvaCents": 617400, "revenueGrossCents": 3557400, "purchasesNetCents": 1730000, "purchasesIvaCents": 363300, "purchasesGrossCents": 2093300 },
+    { "period": "2025-09", "revenueNetCents": 3120000, "revenueIvaCents": 655200, "revenueGrossCents": 3775200, "purchasesNetCents": 1810000, "purchasesIvaCents": 380100, "purchasesGrossCents": 2190100 },
+    { "period": "2025-10", "revenueNetCents": 3210000, "revenueIvaCents": 674100, "revenueGrossCents": 3884100, "purchasesNetCents": 1860000, "purchasesIvaCents": 390600, "purchasesGrossCents": 2250600 },
+    { "period": "2025-11", "revenueNetCents": 3160000, "revenueIvaCents": 663600, "revenueGrossCents": 3823600, "purchasesNetCents": 1920000, "purchasesIvaCents": 403200, "purchasesGrossCents": 2323200 },
+    { "period": "2025-12", "revenueNetCents": 3380000, "revenueIvaCents": 709800, "revenueGrossCents": 4089800, "purchasesNetCents": 2050000, "purchasesIvaCents": 430500, "purchasesGrossCents": 2480500 },
+    { "period": "2026-01", "revenueNetCents": 2850000, "revenueIvaCents": 598500, "revenueGrossCents": 3448500, "purchasesNetCents": 1650000, "purchasesIvaCents": 346500, "purchasesGrossCents": 1996500 },
+    { "period": "2026-02", "revenueNetCents": 2960000, "revenueIvaCents": 621600, "revenueGrossCents": 3581600, "purchasesNetCents": 1710000, "purchasesIvaCents": 359100, "purchasesGrossCents": 2069100 },
+    { "period": "2026-03", "revenueNetCents": 3110000, "revenueIvaCents": 653100, "revenueGrossCents": 3763100, "purchasesNetCents": 1790000, "purchasesIvaCents": 375900, "purchasesGrossCents": 2165900 },
+    { "period": "2026-04", "revenueNetCents": 3205000, "revenueIvaCents": 673050, "revenueGrossCents": 3878050, "purchasesNetCents": 1840000, "purchasesIvaCents": 386400, "purchasesGrossCents": 2226400 },
+    { "period": "2026-05", "revenueNetCents": 3020000, "revenueIvaCents": 634200, "revenueGrossCents": 3654200, "purchasesNetCents": 1760000, "purchasesIvaCents": 369600, "purchasesGrossCents": 2129600 },
+    { "period": "2026-06", "revenueNetCents": 3310000, "revenueIvaCents": 695100, "revenueGrossCents": 4005100, "purchasesNetCents": 1890000, "purchasesIvaCents": 396900, "purchasesGrossCents": 2286900 },
+    { "period": "2026-07", "revenueNetCents": 3245000, "revenueIvaCents": 681450, "revenueGrossCents": 3926450, "purchasesNetCents": 1870000, "purchasesIvaCents": 392700, "purchasesGrossCents": 2262700 },
+    { "period": "2026-08-MTD", "throughDate": "2026-08-06", "revenueNetCents": 920000, "revenueIvaCents": 193200, "revenueGrossCents": 1113200, "purchasesNetCents": 510000, "purchasesIvaCents": 107100, "purchasesGrossCents": 617100 }
+  ],
+  "monthToDateComparison": {
+    "current": {
+      "label": "August 2026 month to date",
+      "startDate": "2026-08-01",
+      "endDate": "2026-08-06",
+      "revenueNetCents": 920000,
+      "revenueIvaCents": 193200,
+      "revenueGrossCents": 1113200,
+      "purchasesNetCents": 510000,
+      "purchasesIvaCents": 107100,
+      "purchasesGrossCents": 617100
+    },
+    "comparison": {
+      "label": "July 2026 equivalent elapsed period",
+      "startDate": "2026-07-01",
+      "endDate": "2026-07-06",
+      "revenueNetCents": 835000,
+      "revenueIvaCents": 175350,
+      "revenueGrossCents": 1010350,
+      "purchasesNetCents": 535000,
+      "purchasesIvaCents": 112350,
+      "purchasesGrossCents": 647350
+    }
+  },
+  "rankingSnapshots": [
+    {
+      "period": "2026-07",
+      "revenueNetCents": 3245000,
+      "productsAndServices": {
+        "topFive": [
+          { "catalogItemId": "item-strategy-workshop", "revenueNetCents": 850000, "quantity": 12 },
+          { "catalogItemId": "item-design-package", "revenueNetCents": 620000, "quantity": 10 },
+          { "catalogItemId": "item-support-subscription", "revenueNetCents": 485000, "quantity": 18 },
+          { "catalogItemId": "item-training-session", "revenueNetCents": 390000, "quantity": 14 },
+          { "catalogItemId": "item-research-package", "revenueNetCents": 270000, "quantity": 16 }
+        ],
+        "allOther": {
+          "itemCount": 5,
+          "revenueNetCents": 630000,
+          "quantity": 26
+        },
+        "topFiveRevenueConcentrationBasisPoints": 8059,
+        "topFiveQuantityConcentrationBasisPoints": 7292
+      },
+      "customers": {
+        "topFive": [
+          { "customerId": "customer-solera", "revenueNetCents": 780000 },
+          { "customerId": "customer-mar-azul", "revenueNetCents": 560000 },
+          { "customerId": "customer-camino", "revenueNetCents": 420000 },
+          { "customerId": "customer-norte-digital", "revenueNetCents": 310000 },
+          { "customerId": "customer-estudio-central", "revenueNetCents": 260000 }
+        ],
+        "allOther": {
+          "customerCount": 7,
+          "revenueNetCents": 915000
+        },
+        "topFiveRevenueConcentrationBasisPoints": 7180
+      }
+    },
+    {
+      "period": "2026-08-MTD",
+      "revenueNetCents": 920000,
+      "productsAndServices": {
+        "topFive": [
+          { "catalogItemId": "item-design-package", "revenueNetCents": 220000, "quantity": 4 },
+          { "catalogItemId": "item-strategy-workshop", "revenueNetCents": 190000, "quantity": 3 },
+          { "catalogItemId": "item-support-subscription", "revenueNetCents": 145000, "quantity": 6 },
+          { "catalogItemId": "item-accessibility-review", "revenueNetCents": 110000, "quantity": 3 },
+          { "catalogItemId": "item-training-session", "revenueNetCents": 95000, "quantity": 4 }
+        ],
+        "allOther": {
+          "itemCount": 5,
+          "revenueNetCents": 160000,
+          "quantity": 8
+        },
+        "topFiveRevenueConcentrationBasisPoints": 8261,
+        "topFiveQuantityConcentrationBasisPoints": 7143
+      },
+      "customers": {
+        "topFive": [
+          { "customerId": "customer-solera", "revenueNetCents": 210000 },
+          { "customerId": "customer-puerto-labs", "revenueNetCents": 160000 },
+          { "customerId": "customer-mar-azul", "revenueNetCents": 145000 },
+          { "customerId": "customer-luz-verde", "revenueNetCents": 120000 },
+          { "customerId": "customer-camino", "revenueNetCents": 105000 }
+        ],
+        "allOther": {
+          "customerCount": 7,
+          "revenueNetCents": 180000
+        },
+        "topFiveRevenueConcentrationBasisPoints": 8043
+      }
+    }
+  ],
+  "forecastPolicy": {
+    "startingBalanceSource": "sum_of_connected_bank_accounts",
+    "moneyInSource": "sales_invoice_remaining_amount_on_expected_cash_date",
+    "moneyOutSource": "purchase_invoice_remaining_amount_on_expected_cash_date",
+    "includeIva": true,
+    "rangeOptions": [
+      { "id": "week", "compactLabel": "W", "accessibilityLabel": "One week", "bucket": "day" },
+      { "id": "month", "compactLabel": "M", "accessibilityLabel": "One month", "bucket": "week" },
+      { "id": "three_months", "compactLabel": "3M", "accessibilityLabel": "Three months", "bucket": "month" },
+      { "id": "six_months", "compactLabel": "6M", "accessibilityLabel": "Six months", "bucket": "month" },
+      { "id": "year", "compactLabel": "Y", "accessibilityLabel": "One year", "bucket": "month" }
+    ],
+    "missingExpectedCashDateBehaviour": "exclude_and_disclose_incomplete_forecast"
+  }
+}

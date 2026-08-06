@@ -1,0 +1,247 @@
+import Charts
+import SwiftUI
+
+enum HomeMode: String, CaseIterable, Identifiable {
+    case overview = "Overview"
+    case insights = "Insights"
+    var id: Self { self }
+}
+
+struct HomeView: View {
+    let store: PrototypeStore
+
+    @State private var mode: HomeMode
+    @AppStorage("includeIvaInAnalytics") private var includeIva = true
+
+    init(store: PrototypeStore, initialMode: HomeMode = .overview) {
+        self.store = store
+        _mode = State(initialValue: initialMode)
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                controls
+
+                if mode == .overview {
+                    OverviewView(store: store)
+                } else {
+                    InsightsView(store: store, includeIva: includeIva)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 32)
+        }
+        .navigationTitle(store.dataset?.business.displayName ?? "Home")
+        .navigationBarTitleDisplayMode(.large)
+        .refreshable { await store.refresh() }
+    }
+
+    private var controls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Picker("Home view", selection: $mode) {
+                    ForEach(HomeMode.allCases) { item in
+                        Text(item.rawValue).tag(item)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Menu {
+                    Toggle("Include IVA", isOn: $includeIva)
+                } label: {
+                    Image(systemName: "gearshape")
+                        .frame(width: 42, height: 36)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel("Display settings")
+            }
+
+            Text("Updated just now")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.top, 4)
+    }
+}
+
+struct OverviewView: View {
+    let store: PrototypeStore
+
+    var body: some View {
+        VStack(spacing: 16) {
+            BankBalanceHomeCard(store: store)
+            InvoiceSummaryCard(kind: .sales, store: store)
+            InvoiceSummaryCard(kind: .purchases, store: store)
+        }
+    }
+}
+
+private struct BankBalanceHomeCard: View {
+    let store: PrototypeStore
+
+    var body: some View {
+        NavigationLink {
+            BankBalanceView(store: store)
+        } label: {
+            PrototypeCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Overall bank balance")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    HStack(alignment: .center, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(PrototypeFormatting.euro(store.currentBalanceCents))
+                                .font(.title.bold())
+                                .foregroundStyle(.primary)
+                                .contentTransition(.numericText())
+
+                            if let change = store.homeBalanceChange {
+                                Label(
+                                    PrototypeFormatting.percent(change),
+                                    systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right"
+                                )
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(change >= 0 ? .green : .red)
+                            }
+                        }
+
+                        Spacer(minLength: 8)
+
+                        if let history = store.dataset?.bankBalanceHistory {
+                            Chart(history) { point in
+                                LineMark(
+                                    x: .value("Date", point.date),
+                                    y: .value("Balance", point.balanceCents)
+                                )
+                                .interpolationMethod(.catmullRom)
+                                .foregroundStyle((store.homeBalanceChange ?? 0) >= 0 ? .green : .red)
+                            }
+                            .chartXAxis(.hidden)
+                            .chartYAxis(.hidden)
+                            .frame(width: 92, height: 38)
+                            .accessibilityHidden(true)
+                        }
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let accounts = store.dataset?.bankAccounts {
+                        HStack(spacing: -4) {
+                            ForEach(accounts) { account in
+                                BankBadge(name: account.institutionName)
+                            }
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Accounts connected from " + accounts.map(\.institutionName).joined(separator: ", "))
+                    }
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(balanceAccessibilityLabel)
+        .accessibilityHint("Shows bank balance details and forecast")
+    }
+
+    private var balanceAccessibilityLabel: String {
+        let balance = PrototypeFormatting.euro(store.currentBalanceCents)
+        guard let change = store.homeBalanceChange else { return "Overall bank balance, \(balance)" }
+        let direction = change >= 0 ? "increased" : "decreased"
+        return "Overall bank balance, \(balance), \(direction) by \(PrototypeFormatting.percent(abs(change), signed: false)) over the previous 30 days"
+    }
+}
+
+enum InvoiceKind: String {
+    case sales = "Sales invoices"
+    case purchases = "Purchase invoices"
+
+    var outstandingQuestion: String {
+        switch self {
+        case .sales: "Money awaiting payment"
+        case .purchases: "Money awaiting payment to suppliers"
+        }
+    }
+}
+
+private struct InvoiceSummaryCard: View {
+    let kind: InvoiceKind
+    let store: PrototypeStore
+
+    var body: some View {
+        let all = summary(.all)
+        PrototypeCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("\(kind.rawValue) outstanding")
+                    .font(.headline)
+
+                Text(PrototypeFormatting.euro(all.amountCents))
+                    .font(.title2.bold())
+
+                Text("\(all.count) unpaid invoices")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Divider()
+
+                InvoiceSummaryLink(kind: kind, urgency: .overdue, summary: summary(.overdue), store: store)
+                Divider()
+                InvoiceSummaryLink(kind: kind, urgency: .dueSoon, summary: summary(.dueSoon), store: store)
+                Divider()
+                NavigationLink {
+                    InvoiceListView(kind: kind, initialUrgency: .all, store: store)
+                } label: {
+                    HStack {
+                        Text("View all outstanding invoices")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func summary(_ urgency: InvoiceUrgency) -> OutstandingSummary {
+        guard let dataset = store.dataset else { return OutstandingSummary(count: 0, amountCents: 0) }
+        return switch kind {
+        case .sales: store.summary(dataset.salesInvoices, urgency: urgency)
+        case .purchases: store.summary(dataset.purchaseInvoices, urgency: urgency)
+        }
+    }
+}
+
+private struct InvoiceSummaryLink: View {
+    let kind: InvoiceKind
+    let urgency: InvoiceUrgency
+    let summary: OutstandingSummary
+    let store: PrototypeStore
+
+    var body: some View {
+        NavigationLink {
+            InvoiceListView(kind: kind, initialUrgency: urgency, store: store)
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(urgency == .dueSoon ? "Due in the next 7 days" : urgency.rawValue)
+                        .font(.subheadline.weight(.semibold))
+                    Text("\(summary.count) invoices")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(PrototypeFormatting.euro(summary.amountCents))
+                    .font(.subheadline.weight(.semibold))
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
