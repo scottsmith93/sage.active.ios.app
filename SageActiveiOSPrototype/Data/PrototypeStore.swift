@@ -144,12 +144,22 @@ final class PrototypeStore {
         return .all
     }
 
-    func summary<I: OutstandingInvoice>(_ invoices: [I], urgency: InvoiceUrgency) -> OutstandingSummary {
+    func summary<I: OutstandingInvoice>(
+        _ invoices: [I],
+        urgency: InvoiceUrgency,
+        includeIva: Bool = true
+    ) -> OutstandingSummary {
         let filtered = urgency == .all ? invoices : invoices.filter { self.urgency(for: $0) == urgency }
         return OutstandingSummary(
             count: filtered.count,
-            amountCents: filtered.reduce(0) { $0 + $1.remainingAmountCents }
+            amountCents: filtered.reduce(0) { $0 + displayRemainingCents($1, includeIva: includeIva) }
         )
+    }
+
+    func displayRemainingCents<I: OutstandingInvoice>(_ invoice: I, includeIva: Bool) -> Int {
+        guard !includeIva, invoice.grossTotalCents > 0 else { return invoice.remainingAmountCents }
+        let netShare = Double(invoice.netTotalCents) / Double(invoice.grossTotalCents)
+        return Int((Double(invoice.remainingAmountCents) * netShare).rounded())
     }
 
     func filtered<I: OutstandingInvoice>(_ invoices: [I], urgency: InvoiceUrgency) -> [I] {
@@ -176,13 +186,14 @@ final class PrototypeStore {
         dataset?.catalogItems.first { $0.id == id }?.name ?? "Unknown item"
     }
 
-    func forecast(for range: ForecastRange) -> ForecastResult {
+    func forecast(for range: ForecastRange, currentBalanceCents: Int? = nil) -> ForecastResult {
         let calendar = DateParsing.calendar
         let start = calendar.startOfDay(for: referenceDate)
         let end = calendar.date(byAdding: range.dateComponents, to: start) ?? start
         let events = forecastEvents().filter { $0.date > start && $0.date <= end }.sorted { $0.date < $1.date }
 
-        var balance = currentBalanceCents
+        let startingBalance = currentBalanceCents ?? self.currentBalanceCents
+        var balance = startingBalance
         var projection = [ProjectionPoint(date: start, balanceCents: balance)]
         for event in events {
             balance += event.moneyInCents - event.moneyOutCents
@@ -195,7 +206,7 @@ final class PrototypeStore {
         return ForecastResult(
             startDate: start,
             endDate: end,
-            currentBalanceCents: currentBalanceCents,
+            currentBalanceCents: startingBalance,
             projectedBalanceCents: balance,
             totalMoneyInCents: events.reduce(0) { $0 + $1.moneyInCents },
             totalMoneyOutCents: events.reduce(0) { $0 + $1.moneyOutCents },

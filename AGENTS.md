@@ -15,7 +15,10 @@ The project owner is an experienced product designer learning native development
 - Keep Insights focused on historical business performance.
 - Keep cash-flow forecasts behind the bank-balance route.
 - Treat bank balances and cash movements as IVA-inclusive cash values.
-- Apply the IVA preference only to analytical revenue and purchase values.
+- Keep bank balances IVA-inclusive; allow invoice and analytical values to respond to the IVA preference.
+- Use Apple semantic colours for page and card surfaces until company tokens are supplied.
+- Keep Insights months chronological from left to right and initially centre the current month.
+- Bank-account selection changes the forecast starting balance; invoice movements remain business-wide until account allocation exists in the dataset.
 - Use Spanish regional currency formatting.
 - Use fictional data only.
 
@@ -37,4 +40,3 @@ The project owner is an experienced product designer learning native development
 - Keep calculations out of SwiftUI view bodies when they can be tested independently.
 - Build after meaningful changes and run the narrowest relevant checks.
 - Report what was verified and what was not.
-

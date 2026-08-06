@@ -25,5 +25,6 @@ struct RootView: View {
                 }
             }
         }
+        .background(PrototypeTheme.pageBackground.ignoresSafeArea())
     }
 }

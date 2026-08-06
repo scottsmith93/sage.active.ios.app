@@ -39,58 +39,75 @@ struct InsightsView: View {
                 totalCents: selectedRevenueTotal,
                 comparisonCents: comparisonRevenueTotal,
                 bars: revenueBars,
-                selection: $selectedRevenueLabel,
-                favourableIncrease: true
+                selection: $selectedRevenueLabel
             )
+            .padding(.horizontal)
             PerformanceChartCard(
                 title: "Purchases",
                 totalCents: selectedPurchaseTotal,
                 comparisonCents: comparisonPurchaseTotal,
                 bars: purchaseBars,
-                selection: $selectedPurchaseLabel,
-                favourableIncrease: false
+                selection: $selectedPurchaseLabel
             )
+            .padding(.horizontal)
             ProductRankingCard(store: store, snapshot: rankingSnapshot, metric: $rankingMetric, includeIva: includeIva)
+                .padding(.horizontal)
             CustomerRankingCard(store: store, snapshot: rankingSnapshot, includeIva: includeIva)
+                .padding(.horizontal)
         }
     }
 
     private var periodControls: some View {
-        PrototypeCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Picker("Reporting period", selection: $periodType) {
-                    ForEach(InsightsPeriodType.allCases) { type in
-                        Text(type.rawValue).tag(type)
-                    }
+        VStack(alignment: .leading, spacing: 12) {
+            Picker("Reporting period", selection: $periodType) {
+                ForEach(InsightsPeriodType.allCases) { type in
+                    Text(type.rawValue).tag(type)
                 }
-                .pickerStyle(.segmented)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
 
-                if periodType == .month {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(availableMonths, id: \.period) { period in
-                                Button(monthLabel(period.period)) {
-                                    selectedPeriod = period.period
+            if periodType == .month {
+                ScrollViewReader { proxy in
+                    GeometryReader { geometry in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                Color.clear.frame(width: 8, height: 1)
+                                ForEach(availableMonths, id: \.period) { period in
+                                    Button(monthLabel(period.period)) {
+                                        selectedPeriod = period.period
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .tint(selectedPeriod == period.period ? .accentColor : .secondary)
+                                    .accessibilityAddTraits(selectedPeriod == period.period ? .isSelected : [])
+                                    .id(period.period)
                                 }
-                                .buttonStyle(.bordered)
-                                .tint(selectedPeriod == period.period ? .accentColor : .secondary)
-                                .accessibilityAddTraits(selectedPeriod == period.period ? .isSelected : [])
+                                Color.clear.frame(width: geometry.size.width * 0.42, height: 1)
                             }
                         }
                     }
-                } else {
-                    HStack {
-                        Button("2025") { selectedPeriod = "2025" }
-                            .buttonStyle(.bordered)
-                        Button("2026") { selectedPeriod = "2026" }
-                            .buttonStyle(.borderedProminent)
+                    .frame(height: 42)
+                    .onAppear {
+                        proxy.scrollTo(selectedPeriod, anchor: .center)
+                    }
+                    .onChange(of: selectedPeriod) {
+                        withAnimation { proxy.scrollTo(selectedPeriod, anchor: .center) }
                     }
                 }
-
-                Text(contextLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            } else {
+                HStack {
+                    Button("2025") { selectedPeriod = "2025" }
+                        .buttonStyle(.bordered)
+                    Button("2026") { selectedPeriod = "2026" }
+                        .buttonStyle(.borderedProminent)
+                }
+                .padding(.horizontal, 16)
             }
+
+            Text(contextLabel)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
         }
         .onChange(of: periodType) {
             selectedPeriod = periodType == .month ? "2026-08-MTD" : "2026"
@@ -98,11 +115,8 @@ struct InsightsView: View {
     }
 
     private var availableMonths: [PerformancePeriod] {
-        Array(
-            (store.dataset?.historicalPerformance ?? [])
-                .filter { $0.period.hasPrefix("2026-") }
-                .reversed()
-        )
+        (store.dataset?.historicalPerformance ?? [])
+            .filter { $0.period.hasPrefix("2026-") }
     }
 
     private var currentPerformance: PerformancePeriod? {
@@ -223,7 +237,6 @@ private struct PerformanceChartCard: View {
     let comparisonCents: Int
     let bars: [ComparisonBar]
     @Binding var selection: String?
-    let favourableIncrease: Bool
     @State private var showsRevenueExplanation = false
 
     private var change: Double? {
@@ -252,18 +265,43 @@ private struct PerformanceChartCard: View {
                     .font(.title2.bold())
 
                 if let change {
-                    Text("\(PrototypeFormatting.percent(change)) from previous period")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(favourableIncrease ? (change >= 0 ? .green : .red) : .secondary)
+                    HStack(spacing: 4) {
+                        Text(PrototypeFormatting.percent(change))
+                            .foregroundStyle(change >= 0 ? .green : .red)
+                        Text("from previous period")
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.subheadline.weight(.semibold))
                 }
 
-                Chart(bars) { bar in
-                    BarMark(
-                        x: .value("Period", bar.label),
-                        y: .value("Amount", bar.cents)
-                    )
-                    .position(by: .value("Series", bar.series))
-                    .foregroundStyle(by: .value("Series", bar.series))
+                Chart {
+                    ForEach(bars) { bar in
+                        BarMark(
+                            x: .value("Period", bar.label),
+                            y: .value("Amount", bar.cents)
+                        )
+                        .position(by: .value("Series", bar.series))
+                        .foregroundStyle(by: .value("Series", bar.series))
+                    }
+
+                    if let selection, !selectedBars.isEmpty {
+                        RuleMark(x: .value("Selected period", selection))
+                            .foregroundStyle(.secondary)
+                            .annotation(position: .top, overflowResolution: .init(x: .fit, y: .disabled)) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(selection)
+                                        .font(.caption.weight(.semibold))
+                                    ForEach(selectedBars) { bar in
+                                        Text("\(bar.series): \(PrototypeFormatting.euro(bar.cents))")
+                                    }
+                                }
+                                .font(.caption)
+                                .padding(8)
+                                .foregroundStyle(.primary)
+                                .background(PrototypeTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+                                .shadow(radius: 3, y: 1)
+                            }
+                    }
                 }
                 .chartYAxis {
                     AxisMarks(position: .leading) { value in
@@ -275,6 +313,7 @@ private struct PerformanceChartCard: View {
                         }
                     }
                 }
+                .chartXSelection(value: $selection)
                 .frame(height: 220)
                 .accessibilityLabel(title + " comparison chart")
                 .accessibilityValue("Current \(PrototypeFormatting.euro(totalCents)), previous \(PrototypeFormatting.euro(comparisonCents))")
@@ -285,6 +324,11 @@ private struct PerformanceChartCard: View {
         } message: {
             Text("Revenue is the value of sales recorded in the selected period. It may differ from cash received because customers can pay later.")
         }
+    }
+
+    private var selectedBars: [ComparisonBar] {
+        guard let selection else { return [] }
+        return bars.filter { $0.label == selection }
     }
 }
 

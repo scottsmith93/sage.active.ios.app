@@ -11,6 +11,7 @@ struct HomeView: View {
     let store: PrototypeStore
 
     @State private var mode: HomeMode
+    @State private var showsDisplaySettings = false
     @AppStorage("includeIvaInAnalytics") private var includeIva = true
 
     init(store: PrototypeStore, initialMode: HomeMode = .overview) {
@@ -22,16 +23,18 @@ struct HomeView: View {
         ScrollView {
             LazyVStack(spacing: 16) {
                 controls
+                    .padding(.horizontal)
 
                 if mode == .overview {
-                    OverviewView(store: store)
+                    OverviewView(store: store, includeIva: includeIva)
+                        .padding(.horizontal)
                 } else {
                     InsightsView(store: store, includeIva: includeIva)
                 }
             }
-            .padding(.horizontal)
             .padding(.bottom, 32)
         }
+        .background(PrototypeTheme.pageBackground)
         .navigationTitle(store.dataset?.business.displayName ?? "Home")
         .navigationBarTitleDisplayMode(.large)
         .refreshable { await store.refresh() }
@@ -46,15 +49,25 @@ struct HomeView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .frame(height: 32)
 
-                Menu {
-                    Toggle("Include IVA", isOn: $includeIva)
+                Button {
+                    showsDisplaySettings = true
                 } label: {
                     Image(systemName: "gearshape")
-                        .frame(width: 42, height: 36)
+                        .frame(width: 32, height: 32)
+                        .background(.quaternary, in: Circle())
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
+                .frame(height: 32)
                 .accessibilityLabel("Display settings")
+                .popover(isPresented: $showsDisplaySettings) {
+                    Toggle("Include IVA in figures", isOn: $includeIva)
+                        .toggleStyle(.switch)
+                        .padding()
+                        .frame(minWidth: 260)
+                        .presentationCompactAdaptation(.popover)
+                }
             }
 
             Text("Updated just now")
@@ -67,12 +80,13 @@ struct HomeView: View {
 
 struct OverviewView: View {
     let store: PrototypeStore
+    let includeIva: Bool
 
     var body: some View {
         VStack(spacing: 16) {
             BankBalanceHomeCard(store: store)
-            InvoiceSummaryCard(kind: .sales, store: store)
-            InvoiceSummaryCard(kind: .purchases, store: store)
+            InvoiceSummaryCard(kind: .sales, store: store, includeIva: includeIva)
+            InvoiceSummaryCard(kind: .purchases, store: store, includeIva: includeIva)
         }
     }
 }
@@ -169,6 +183,7 @@ enum InvoiceKind: String {
 private struct InvoiceSummaryCard: View {
     let kind: InvoiceKind
     let store: PrototypeStore
+    let includeIva: Bool
 
     var body: some View {
         let all = summary(.all)
@@ -177,12 +192,15 @@ private struct InvoiceSummaryCard: View {
                 Text("\(kind.rawValue) outstanding")
                     .font(.headline)
 
-                Text(PrototypeFormatting.euro(all.amountCents))
-                    .font(.title2.bold())
+                VStack(alignment: .leading, spacing: PrototypeTheme.relatedSpacing) {
+                    Text(PrototypeFormatting.euro(all.amountCents))
+                        .font(.title2.bold())
+                        .contentTransition(.numericText())
 
-                Text("\(all.count) unpaid invoices")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    Text("\(all.count) unpaid invoices")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
                 Divider()
 
@@ -209,8 +227,8 @@ private struct InvoiceSummaryCard: View {
     private func summary(_ urgency: InvoiceUrgency) -> OutstandingSummary {
         guard let dataset = store.dataset else { return OutstandingSummary(count: 0, amountCents: 0) }
         return switch kind {
-        case .sales: store.summary(dataset.salesInvoices, urgency: urgency)
-        case .purchases: store.summary(dataset.purchaseInvoices, urgency: urgency)
+        case .sales: store.summary(dataset.salesInvoices, urgency: urgency, includeIva: includeIva)
+        case .purchases: store.summary(dataset.purchaseInvoices, urgency: urgency, includeIva: includeIva)
         }
     }
 }

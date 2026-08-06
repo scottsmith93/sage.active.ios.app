@@ -20,6 +20,7 @@ struct InvoiceListView: View {
     let store: PrototypeStore
 
     @State private var urgency: InvoiceUrgency
+    @AppStorage("includeIvaInAnalytics") private var includeIva = true
 
     init(kind: InvoiceKind, initialUrgency: InvoiceUrgency, store: PrototypeStore) {
         self.kind = kind
@@ -42,11 +43,12 @@ struct InvoiceListView: View {
                 HStack {
                     Text("\(visible.count) invoices")
                     Spacer()
-                    Text(PrototypeFormatting.euro(visible.reduce(0) { $0 + $1.remainingCents }))
+                    Text(PrototypeFormatting.euro(visible.reduce(0) { $0 + displayAmount($1) }))
                         .fontWeight(.semibold)
                 }
                 .foregroundStyle(.secondary)
             }
+            .listRowBackground(PrototypeTheme.cardBackground)
 
             Section {
                 ForEach(rows) { invoice in
@@ -63,7 +65,7 @@ struct InvoiceListView: View {
                                 Text(dueDescription(invoice))
                                     .foregroundStyle(isOverdue(invoice) ? .red : .secondary)
                                 Spacer()
-                                Text(PrototypeFormatting.euro(invoice.remainingCents))
+                                Text(PrototypeFormatting.euro(displayAmount(invoice)))
                                     .fontWeight(.semibold)
                             }
                             .font(.subheadline)
@@ -72,7 +74,10 @@ struct InvoiceListView: View {
                     }
                 }
             }
+            .listRowBackground(PrototypeTheme.cardBackground)
         }
+        .scrollContentBackground(.hidden)
+        .background(PrototypeTheme.pageBackground)
         .navigationTitle(kind.rawValue)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -128,6 +133,12 @@ struct InvoiceListView: View {
         if days == 0 { return "Due today" }
         return "Due in \(days) days"
     }
+
+    private func displayAmount(_ invoice: InvoiceRowData) -> Int {
+        guard !includeIva, invoice.grossCents > 0 else { return invoice.remainingCents }
+        let netShare = Double(invoice.netCents) / Double(invoice.grossCents)
+        return Int((Double(invoice.remainingCents) * netShare).rounded())
+    }
 }
 
 private struct InvoiceDetailView: View {
@@ -143,6 +154,7 @@ private struct InvoiceDetailView: View {
                 LabeledContent("Issued", value: PrototypeFormatting.day(invoice.issueDate))
                 LabeledContent("Due", value: PrototypeFormatting.day(invoice.dueDate))
             }
+            .listRowBackground(PrototypeTheme.cardBackground)
 
             Section("Amount") {
                 LabeledContent("Subtotal", value: PrototypeFormatting.euro(invoice.netCents))
@@ -154,6 +166,7 @@ private struct InvoiceDetailView: View {
                 LabeledContent("Outstanding", value: PrototypeFormatting.euro(invoice.remainingCents))
                     .fontWeight(.semibold)
             }
+            .listRowBackground(PrototypeTheme.cardBackground)
 
             Section {
                 Button {
@@ -164,7 +177,10 @@ private struct InvoiceDetailView: View {
             } footer: {
                 Text("Prototype only. No message will be sent.")
             }
+            .listRowBackground(PrototypeTheme.cardBackground)
         }
+        .scrollContentBackground(.hidden)
+        .background(PrototypeTheme.pageBackground)
         .navigationTitle(invoice.number)
         .navigationBarTitleDisplayMode(.inline)
         .alert("Reminder simulated", isPresented: $showsReminderConfirmation) {

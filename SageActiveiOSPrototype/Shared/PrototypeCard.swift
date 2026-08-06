@@ -1,5 +1,13 @@
 import SwiftUI
 
+enum PrototypeTheme {
+    static let pageBackground = Color(uiColor: .secondarySystemBackground)
+    static let cardBackground = Color(uiColor: .systemBackground)
+    static let cardCornerRadius: CGFloat = 24
+    static let pageSpacing: CGFloat = 16
+    static let relatedSpacing: CGFloat = 4
+}
+
 struct PrototypeCard<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -7,7 +15,10 @@ struct PrototypeCard<Content: View>: View {
         content
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .background(
+                PrototypeTheme.cardBackground,
+                in: RoundedRectangle(cornerRadius: PrototypeTheme.cardCornerRadius, style: .continuous)
+            )
     }
 }
 
@@ -30,4 +41,3 @@ struct BankBadge: View {
         }
     }
 }
-

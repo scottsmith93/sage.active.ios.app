@@ -16,6 +16,9 @@ This is a research prototype. It is not an accounting system and makes no claim 
 - Read-only sales and purchase invoice lists and details.
 - Safe simulated reminder feedback; no messages or data leave the app.
 - Native pull-to-refresh with a short simulated delay.
+- Native semantic page and card colours that adapt to system appearance.
+- Bank-account inclusion controls and six native chart-colour choices.
+- Visible chart callouts when a chart is pressed and dragged.
 
 ## Run it in the iPhone Simulator
 
@@ -49,7 +52,7 @@ The app validates the dataset every time it loads. It checks invoice arithmetic,
 
 ## Design-system tokens later
 
-The current version deliberately uses standard native styling so information architecture can be evaluated first. A later styling phase can introduce a small semantic token layer—such as surface, primary text, positive, negative, spacing and corner radius—then apply it through shared components like `PrototypeCard`. That will allow one token change to update every instance without replacing native controls.
+The current version deliberately uses standard native styling so information architecture can be evaluated first. Its small semantic layer maps the page to Apple’s `secondarySystemBackground` and cards to `systemBackground`, with shared spacing and corner-radius values in `PrototypeCard.swift`. A later styling phase can replace those mappings with company design-system tokens while retaining native controls.
 
 ## Reference environment
 

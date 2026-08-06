@@ -1,15 +1,42 @@
 import Charts
 import SwiftUI
 
+private enum ChartColour: String, CaseIterable, Identifiable {
+    case blue, green, orange, purple, pink, teal
+
+    var id: Self { self }
+    var name: String { rawValue.capitalized }
+    var colour: Color {
+        switch self {
+        case .blue: .blue
+        case .green: .green
+        case .orange: .orange
+        case .purple: .purple
+        case .pink: .pink
+        case .teal: .teal
+        }
+    }
+}
+
 struct BankBalanceView: View {
     let store: PrototypeStore
 
     @State private var range: ForecastRange = .month
     @State private var selectedProjectionDate: Date?
     @State private var selectedCashPeriod: String?
+    @State private var selectedBankIDs: Set<String>
+    @State private var showsSettings: Bool
+    @AppStorage("cashInChartColour") private var cashInColourRaw = ChartColour.green.rawValue
+    @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.orange.rawValue
+
+    init(store: PrototypeStore) {
+        self.store = store
+        _selectedBankIDs = State(initialValue: Set(store.dataset?.bankAccounts.map(\.id) ?? []))
+        _showsSettings = State(initialValue: ProcessInfo.processInfo.arguments.contains("-showBankSettings"))
+    }
 
     var body: some View {
-        let forecast = store.forecast(for: range)
+        let forecast = store.forecast(for: range, currentBalanceCents: selectedBalanceCents)
 
         ScrollView {
             VStack(spacing: 16) {
@@ -23,19 +50,160 @@ struct BankBalanceView: View {
                 .pickerStyle(.segmented)
 
                 ProjectionChartCard(forecast: forecast, selection: $selectedProjectionDate)
-                CashFlowChartCard(forecast: forecast, range: range, selection: $selectedCashPeriod)
-                ConnectedAccountsCard(accounts: store.dataset?.bankAccounts ?? [])
+                CashFlowChartCard(
+                    forecast: forecast,
+                    range: range,
+                    selection: $selectedCashPeriod,
+                    cashInColour: cashInColour.colour,
+                    cashOutColour: cashOutColour.colour
+                )
+                ConnectedAccountsCard(
+                    accounts: store.dataset?.bankAccounts ?? [],
+                    selectedBankIDs: selectedBankIDs
+                )
             }
             .padding()
             .padding(.bottom, 24)
         }
+        .background(PrototypeTheme.pageBackground)
         .navigationTitle("Bank balance")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showsSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel("Bank balance settings")
+            }
+        }
+        .sheet(isPresented: $showsSettings) {
+            BankBalanceSettingsSheet(
+                accounts: store.dataset?.bankAccounts ?? [],
+                selectedBankIDs: $selectedBankIDs,
+                cashInColour: Binding(
+                    get: { cashInColour },
+                    set: { cashInColourRaw = $0.rawValue }
+                ),
+                cashOutColour: Binding(
+                    get: { cashOutColour },
+                    set: { cashOutColourRaw = $0.rawValue }
+                )
+            )
+            .presentationDetents([.fraction(0.8), .large])
+            .presentationDragIndicator(.visible)
+        }
         .refreshable { await store.refresh() }
         .onChange(of: range) {
             selectedProjectionDate = nil
             selectedCashPeriod = nil
         }
+    }
+
+    private var selectedBalanceCents: Int {
+        (store.dataset?.bankAccounts ?? [])
+            .filter { selectedBankIDs.contains($0.id) }
+            .reduce(0) { $0 + $1.balanceCents }
+    }
+
+    private var cashInColour: ChartColour {
+        ChartColour(rawValue: cashInColourRaw) ?? .green
+    }
+
+    private var cashOutColour: ChartColour {
+        ChartColour(rawValue: cashOutColourRaw) ?? .orange
+    }
+}
+
+private struct BankBalanceSettingsSheet: View {
+    let accounts: [BankAccount]
+    @Binding var selectedBankIDs: Set<String>
+    @Binding var cashInColour: ChartColour
+    @Binding var cashOutColour: ChartColour
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(accounts) { account in
+                        Toggle(isOn: selectionBinding(for: account.id)) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(account.institutionName)
+                                Text("\(account.accountName) \(account.maskedIdentifier)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Accounts included")
+                } footer: {
+                    Text("The forecast starts from the balance of the selected accounts. Expected invoice movements remain business-wide in this prototype.")
+                }
+                .listRowBackground(PrototypeTheme.cardBackground)
+
+                Section("Cash-flow chart colours") {
+                    ChartColourPicker(title: "Money in", selection: $cashInColour)
+                    ChartColourPicker(title: "Money out", selection: $cashOutColour)
+                }
+                .listRowBackground(PrototypeTheme.cardBackground)
+            }
+            .scrollContentBackground(.hidden)
+            .background(PrototypeTheme.pageBackground)
+            .navigationTitle("Bank balance settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func selectionBinding(for id: String) -> Binding<Bool> {
+        Binding(
+            get: { selectedBankIDs.contains(id) },
+            set: { isSelected in
+                if isSelected { selectedBankIDs.insert(id) }
+                else { selectedBankIDs.remove(id) }
+            }
+        )
+    }
+}
+
+private struct ChartColourPicker: View {
+    let title: String
+    @Binding var selection: ChartColour
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+            HStack(spacing: 12) {
+                ForEach(ChartColour.allCases) { option in
+                    Button {
+                        selection = option
+                    } label: {
+                        Circle()
+                            .fill(option.colour)
+                            .frame(width: 28, height: 28)
+                            .overlay {
+                                if selection == option {
+                                    Image(systemName: "checkmark")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(title), \(option.name)")
+                    .accessibilityAddTraits(selection == option ? .isSelected : [])
+                }
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
@@ -107,7 +275,9 @@ private struct ProjectionChartCard: View {
                                         .font(.caption.weight(.semibold))
                                 }
                                 .padding(8)
-                                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                                .foregroundStyle(.primary)
+                                .background(PrototypeTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+                                .shadow(radius: 3, y: 1)
                             }
                     }
                 }
@@ -134,6 +304,8 @@ private struct CashFlowChartCard: View {
     let forecast: ForecastResult
     let range: ForecastRange
     @Binding var selection: String?
+    let cashInColour: Color
+    let cashOutColour: Color
 
     private var selectedBucket: CashFlowBucket? {
         guard let selection else { return nil }
@@ -193,13 +365,15 @@ private struct CashFlowChartCard: View {
                                     }
                                     .font(.caption)
                                     .padding(8)
-                                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                                    .foregroundStyle(.primary)
+                                    .background(PrototypeTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+                                    .shadow(radius: 3, y: 1)
                                 }
                         }
                     }
                     .chartForegroundStyleScale([
-                        "Money in": Color.green,
-                        "Money out": Color.orange
+                        "Money in": cashInColour,
+                        "Money out": cashOutColour
                     ])
                     .chartYAxis {
                         AxisMarks(position: .leading) { value in
@@ -234,6 +408,7 @@ private struct CashFlowChartCard: View {
 
 private struct ConnectedAccountsCard: View {
     let accounts: [BankAccount]
+    let selectedBankIDs: Set<String>
 
     var body: some View {
         PrototypeCard {
@@ -253,9 +428,17 @@ private struct ConnectedAccountsCard: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text(PrototypeFormatting.euro(account.balanceCents))
-                            .font(.subheadline.weight(.semibold))
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(PrototypeFormatting.euro(account.balanceCents))
+                                .font(.subheadline.weight(.semibold))
+                            if !selectedBankIDs.contains(account.id) {
+                                Text("Excluded")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
+                    .opacity(selectedBankIDs.contains(account.id) ? 1 : 0.55)
                 }
             }
         }
