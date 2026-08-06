@@ -21,7 +21,11 @@ The project owner is an experienced product designer learning native development
 - Bank-account selection changes both the forecast starting balance and the invoice movements assigned to those accounts.
 - Keep the app and widget responsive to the system appearance; do not force a colour scheme.
 - Keep the Overview quotes card to one pending-value KPI with no overdue or due-soon breakdown.
+- Keep Overview card priority ordered as bank balance, sales invoices, purchase invoices, then quotes.
 - Treat WidgetKit totals as static fictional prototype data until a shared data source is explicitly added.
+- Keep Dashboard as the default tab.
+- Keep Invoice, Order and Quote lists on the shared Sales page template and reusable document card unless a specific exception is requested.
+- Use a black page and dark-grey cards in Dark Mode; use a grey page and white cards in Light Mode.
 - Use Spanish regional currency formatting.
 - Use fictional data only.
 

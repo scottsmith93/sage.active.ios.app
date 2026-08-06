@@ -85,9 +85,9 @@ struct OverviewView: View {
     var body: some View {
         VStack(spacing: 16) {
             BankBalanceHomeCard(store: store)
-            PendingQuotesCard(store: store, includeIva: includeIva)
             InvoiceSummaryCard(kind: .sales, store: store, includeIva: includeIva)
             InvoiceSummaryCard(kind: .purchases, store: store, includeIva: includeIva)
+            PendingQuotesCard(store: store, includeIva: includeIva)
         }
     }
 }
@@ -150,34 +150,38 @@ private struct BankBalanceHomeCard: View {
 
                         Spacer(minLength: 8)
 
-                        if let history = store.dataset?.bankBalanceHistory {
-                            Chart(history) { point in
-                                LineMark(
-                                    x: .value("Date", point.date),
-                                    y: .value("Balance", point.balanceCents)
-                                )
-                                .interpolationMethod(.catmullRom)
-                                .foregroundStyle((store.homeBalanceChange ?? 0) >= 0 ? .green : .red)
+                        VStack(alignment: .trailing, spacing: 6) {
+                            if let accounts = store.dataset?.bankAccounts {
+                                HStack(spacing: 4) {
+                                    ForEach(accounts) { account in
+                                        BankBadge(name: account.institutionName)
+                                    }
+                                }
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel("Accounts connected from " + accounts.map(\.institutionName).joined(separator: ", "))
                             }
-                            .chartXAxis(.hidden)
-                            .chartYAxis(.hidden)
-                            .frame(width: 92, height: 38)
-                            .accessibilityHidden(true)
-                        }
 
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
+                            HStack(spacing: 8) {
+                                if let history = store.dataset?.bankBalanceHistory {
+                                    Chart(history) { point in
+                                        LineMark(
+                                            x: .value("Date", point.date),
+                                            y: .value("Balance", point.balanceCents)
+                                        )
+                                        .interpolationMethod(.catmullRom)
+                                        .foregroundStyle((store.homeBalanceChange ?? 0) >= 0 ? .green : .red)
+                                    }
+                                    .chartXAxis(.hidden)
+                                    .chartYAxis(.hidden)
+                                    .frame(width: 104, height: 32)
+                                    .accessibilityHidden(true)
+                                }
 
-                    if let accounts = store.dataset?.bankAccounts {
-                        HStack(spacing: -4) {
-                            ForEach(accounts) { account in
-                                BankBadge(name: account.institutionName)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
                             }
                         }
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel("Accounts connected from " + accounts.map(\.institutionName).joined(separator: ", "))
                     }
                 }
             }

@@ -1,8 +1,12 @@
 import SwiftUI
 
 enum PrototypeTheme {
-    static let pageBackground = Color(uiColor: .secondarySystemBackground)
-    static let cardBackground = Color(uiColor: .systemBackground)
+    static let pageBackground = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark ? .black : .secondarySystemBackground
+    })
+    static let cardBackground = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark ? .secondarySystemBackground : .systemBackground
+    })
     static let positive = Color(uiColor: .systemGreen).mix(with: .primary, by: 0.18)
     static let negative = Color(uiColor: .systemRed)
     static let supportingText = Color.primary.opacity(0.68)
@@ -29,18 +33,24 @@ struct BankBadge: View {
     let name: String
 
     var body: some View {
-        Text(initials)
-            .font(.caption2.weight(.bold))
-            .frame(width: 30, height: 30)
-            .background(.quaternary, in: Circle())
+        Image(assetName)
+            .resizable()
+            .scaledToFit()
+            .padding(3)
+            .frame(width: 32, height: 32)
+            .background(.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(.quaternary, lineWidth: 0.5)
+            }
             .accessibilityLabel(name)
     }
 
-    private var initials: String {
+    private var assetName: String {
         switch name {
-        case "Santander": "SAN"
-        case "CaixaBank": "CX"
-        default: String(name.prefix(3)).uppercased()
+        case "Santander": "bank-santander"
+        case "CaixaBank": "bank-caixabank"
+        default: "bank-bbva"
         }
     }
 }

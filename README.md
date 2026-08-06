@@ -22,6 +22,9 @@ This is a research prototype. It is not an accounting system and makes no claim 
 - A pending-quotes KPI on Overview.
 - A native WidgetKit Home Screen widget for unpaid sales and purchase invoices.
 - A temporary monochrome app icon and the Home Screen name `Sage Active`.
+- A native bottom tab bar with Dashboard as the default and a new Sales destination.
+- Shared searchable, sortable and filterable lists for invoices, orders and quotes.
+- Compressed BBVA, CaixaBank and Santander artwork supplied for this prototype.
 
 ## Run it in the iPhone Simulator
 
@@ -61,6 +64,7 @@ After it is added, use that control to switch Sage Active between Light and Dark
 - `Features/BankBalance/BankBalanceView.swift`: forecast and cash-flow charts.
 - `Features/Insights/InsightsView.swift`: historical comparisons and rankings.
 - `Features/Invoices/InvoiceViews.swift`: read-only invoice routes.
+- `Features/Sales/SalesView.swift`: the shared Sales list, document filters, sorting and reusable document card.
 - `SageActiveWidgets/SageActiveWidgets.swift`: the Home Screen KPI widget.
 - `Shared/PrototypeCard.swift`: the reusable card container.
 - `Shared/Formatting.swift`: Spanish dates, euros and percentages.
@@ -77,7 +81,7 @@ The app validates the dataset every time it loads. It checks invoice arithmetic,
 
 ## Design-system tokens later
 
-The current version deliberately uses standard native styling so information architecture can be evaluated first. Its small semantic layer maps the page to Apple’s `secondarySystemBackground` and cards to `systemBackground`, with shared spacing and corner-radius values in `PrototypeCard.swift`. A later styling phase can replace those mappings with company design-system tokens while retaining native controls.
+The current version deliberately uses standard native styling so information architecture can be evaluated first. Its small semantic layer maps the light page to Apple’s `secondarySystemBackground` and cards to `systemBackground`. In Dark Mode it uses a black page with `secondarySystemBackground` cards. Shared spacing and corner-radius values live in `PrototypeCard.swift`. A later styling phase can replace those mappings with company design-system tokens while retaining native controls.
 
 ## Reference environment
 
@@ -92,7 +96,9 @@ The current version deliberately uses standard native styling so information arc
 
 - All customers, invoices, forecasts and account values are fictional.
 - Quotes and WidgetKit invoice totals are also fictional.
-- Bank institutions currently use compact text badges. Approved logo artwork can replace these when supplied.
+- The supplied bank logos are compressed prototype assets and remain visual only; there are no real bank connections.
+- Sales orders use local fictional fixtures until the example-data source is connected.
+- The prominent Sales create button is intentionally a placeholder; the creation form is the next planned iteration.
 - Forecasts are deterministic demonstrations based on invoice expected-cash dates; they are not financial predictions.
 - Fiscal year currently follows the Spanish scenario’s calendar year.
 - The app has not been prepared for TestFlight or production signing.
