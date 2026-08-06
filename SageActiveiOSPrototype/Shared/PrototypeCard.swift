@@ -2,10 +2,12 @@ import SwiftUI
 
 enum PrototypeTheme {
     static let pageBackground = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark ? .black : .secondarySystemBackground
+        let colour: UIColor = traits.userInterfaceStyle == .dark ? .black : .secondarySystemBackground
+        return colour.resolvedColor(with: traits)
     })
     static let cardBackground = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark ? .secondarySystemBackground : .systemBackground
+        let colour: UIColor = traits.userInterfaceStyle == .dark ? .secondarySystemBackground : .systemBackground
+        return colour.resolvedColor(with: traits)
     })
     static let positive = Color(uiColor: .systemGreen).mix(with: .primary, by: 0.18)
     static let negative = Color(uiColor: .systemRed)
