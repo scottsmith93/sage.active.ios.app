@@ -18,7 +18,7 @@ The project owner is an experienced product designer learning native development
 - Keep bank balances IVA-inclusive; allow invoice and analytical values to respond to the IVA preference.
 - Use Apple semantic colours for page and card surfaces until company tokens are supplied.
 - Keep Insights months chronological from left to right and initially centre the current month.
-- Bank-account selection changes the forecast starting balance; invoice movements remain business-wide until account allocation exists in the dataset.
+- Bank-account selection changes both the forecast starting balance and the invoice movements assigned to those accounts.
 - Use Spanish regional currency formatting.
 - Use fictional data only.
 

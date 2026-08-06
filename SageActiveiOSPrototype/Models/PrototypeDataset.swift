@@ -72,6 +72,7 @@ protocol OutstandingInvoice: Identifiable {
     var issueDate: String { get }
     var dueDate: String { get }
     var expectedCashDate: String { get }
+    var expectedBankAccountId: String { get }
     var netTotalCents: Int { get }
     var ivaTotalCents: Int { get }
     var grossTotalCents: Int { get }
@@ -87,6 +88,7 @@ struct SalesInvoice: Decodable, OutstandingInvoice {
     let issueDate: String
     let dueDate: String
     let expectedCashDate: String
+    let expectedBankAccountId: String
     let netTotalCents: Int
     let ivaTotalCents: Int
     let grossTotalCents: Int
@@ -103,6 +105,7 @@ struct PurchaseInvoice: Decodable, OutstandingInvoice {
     let issueDate: String
     let dueDate: String
     let expectedCashDate: String
+    let expectedBankAccountId: String
     let netTotalCents: Int
     let ivaTotalCents: Int
     let grossTotalCents: Int
@@ -190,4 +193,3 @@ struct OtherCustomers: Decodable {
     let customerCount: Int
     let revenueNetCents: Int
 }
-

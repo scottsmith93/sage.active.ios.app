@@ -186,11 +186,17 @@ final class PrototypeStore {
         dataset?.catalogItems.first { $0.id == id }?.name ?? "Unknown item"
     }
 
-    func forecast(for range: ForecastRange, currentBalanceCents: Int? = nil) -> ForecastResult {
+    func forecast(
+        for range: ForecastRange,
+        currentBalanceCents: Int? = nil,
+        includedBankIDs: Set<String>? = nil
+    ) -> ForecastResult {
         let calendar = DateParsing.calendar
         let start = calendar.startOfDay(for: referenceDate)
         let end = calendar.date(byAdding: range.dateComponents, to: start) ?? start
-        let events = forecastEvents().filter { $0.date > start && $0.date <= end }.sorted { $0.date < $1.date }
+        let events = forecastEvents(includedBankIDs: includedBankIDs)
+            .filter { $0.date > start && $0.date <= end }
+            .sorted { $0.date < $1.date }
 
         let startingBalance = currentBalanceCents ?? self.currentBalanceCents
         var balance = startingBalance
@@ -215,13 +221,15 @@ final class PrototypeStore {
         )
     }
 
-    private func forecastEvents() -> [ForecastEvent] {
+    private func forecastEvents(includedBankIDs: Set<String>?) -> [ForecastEvent] {
         guard let dataset else { return [] }
         let sales = dataset.salesInvoices.compactMap { invoice -> ForecastEvent? in
+            if let includedBankIDs, !includedBankIDs.contains(invoice.expectedBankAccountId) { return nil }
             guard let date = DateParsing.day.date(from: invoice.expectedCashDate) else { return nil }
             return ForecastEvent(id: invoice.id, date: date, moneyInCents: invoice.remainingAmountCents, moneyOutCents: 0)
         }
         let purchases = dataset.purchaseInvoices.compactMap { invoice -> ForecastEvent? in
+            if let includedBankIDs, !includedBankIDs.contains(invoice.expectedBankAccountId) { return nil }
             guard let date = DateParsing.day.date(from: invoice.expectedCashDate) else { return nil }
             return ForecastEvent(id: invoice.id, date: date, moneyInCents: 0, moneyOutCents: invoice.remainingAmountCents)
         }

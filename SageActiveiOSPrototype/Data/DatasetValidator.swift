@@ -24,6 +24,11 @@ enum DatasetValidator {
 
         try validateInvoices(dataset.salesInvoices, label: "sales")
         try validateInvoices(dataset.purchaseInvoices, label: "purchase")
+        let bankIDs = Set(dataset.bankAccounts.map(\.id))
+        guard dataset.salesInvoices.allSatisfy({ bankIDs.contains($0.expectedBankAccountId) }),
+              dataset.purchaseInvoices.allSatisfy({ bankIDs.contains($0.expectedBankAccountId) }) else {
+            throw DatasetValidationError.invalid("An expected invoice movement references an unknown bank account.")
+        }
 
         for period in dataset.historicalPerformance {
             guard period.revenueNetCents + period.revenueIvaCents == period.revenueGrossCents,

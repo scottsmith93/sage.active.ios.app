@@ -36,7 +36,11 @@ struct BankBalanceView: View {
     }
 
     var body: some View {
-        let forecast = store.forecast(for: range, currentBalanceCents: selectedBalanceCents)
+        let forecast = store.forecast(
+            for: range,
+            currentBalanceCents: selectedBalanceCents,
+            includedBankIDs: selectedBankIDs
+        )
 
         ScrollView {
             VStack(spacing: 16) {
@@ -140,7 +144,7 @@ private struct BankBalanceSettingsSheet: View {
                 } header: {
                     Text("Accounts included")
                 } footer: {
-                    Text("The forecast starts from the balance of the selected accounts. Expected invoice movements remain business-wide in this prototype.")
+                    Text("Selected accounts determine both the starting balance and the expected invoice movements included in the forecast.")
                 }
                 .listRowBackground(PrototypeTheme.cardBackground)
 
