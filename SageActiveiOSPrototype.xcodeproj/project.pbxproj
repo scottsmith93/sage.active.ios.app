@@ -13,6 +13,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A10000000000000000000001 /* SageActiveiOSPrototype */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B10000000000000000000016 /* Exceptions for "SageActiveiOSPrototype" folder in "SageActiveiOSPrototype" target */,
+			);
 			path = SageActiveiOSPrototype;
 			sourceTree = "<group>";
 		};
@@ -33,6 +36,13 @@
 				Info.plist,
 			);
 			target = B10000000000000000000006 /* SageActiveWidgets */;
+		};
+		B10000000000000000000016 /* Exceptions for "SageActiveiOSPrototype" folder in "SageActiveiOSPrototype" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A10000000000000000000006 /* SageActiveiOSPrototype */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -283,7 +293,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SageActiveiOSPrototype/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Sage Active";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -309,7 +320,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SageActiveiOSPrototype/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Sage Active";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

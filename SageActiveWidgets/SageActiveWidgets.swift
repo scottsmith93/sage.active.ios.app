@@ -60,6 +60,7 @@ struct FinanceSnapshotWidgetView: View {
                 .foregroundStyle(.secondary)
         }
         .containerBackground(.background, for: .widget)
+        .widgetURL(URL(string: "sageactive://overview"))
     }
 
     private struct KPI: View {
