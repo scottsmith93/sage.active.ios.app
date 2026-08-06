@@ -162,6 +162,16 @@ final class PrototypeStore {
         return Int((Double(invoice.remainingAmountCents) * netShare).rounded())
     }
 
+    func pendingQuoteSummary(includeIva: Bool) -> OutstandingSummary {
+        let pending = dataset?.quotes.filter { $0.status == "pending" } ?? []
+        return OutstandingSummary(
+            count: pending.count,
+            amountCents: pending.reduce(0) { total, quote in
+                total + (includeIva ? quote.grossTotalCents : quote.netTotalCents)
+            }
+        )
+    }
+
     func filtered<I: OutstandingInvoice>(_ invoices: [I], urgency: InvoiceUrgency) -> [I] {
         let filtered = urgency == .all ? invoices : invoices.filter { self.urgency(for: $0) == urgency }
         return filtered.sorted {

@@ -261,17 +261,19 @@ private struct PerformanceChartCard: View {
                     }
                 }
 
-                Text(PrototypeFormatting.euro(totalCents))
-                    .font(.title2.bold())
+                VStack(alignment: .leading, spacing: PrototypeTheme.relatedSpacing) {
+                    Text(PrototypeFormatting.euro(totalCents))
+                        .font(.title2.bold())
 
-                if let change {
-                    HStack(spacing: 4) {
-                        Text(PrototypeFormatting.percent(change))
-                            .foregroundStyle(change >= 0 ? .green : .red)
-                        Text("from previous period")
-                            .foregroundStyle(.secondary)
+                    if let change {
+                        HStack(spacing: 4) {
+                            Text(PrototypeFormatting.percent(change))
+                                .foregroundStyle(change >= 0 ? PrototypeTheme.positive : PrototypeTheme.negative)
+                            Text("from previous period")
+                                .foregroundStyle(PrototypeTheme.supportingText)
+                        }
+                        .font(.footnote.weight(.medium))
                     }
-                    .font(.subheadline.weight(.semibold))
                 }
 
                 Chart {
@@ -315,6 +317,7 @@ private struct PerformanceChartCard: View {
                 }
                 .chartXSelection(value: $selection)
                 .frame(height: 220)
+                .padding(.top, 10)
                 .accessibilityLabel(title + " comparison chart")
                 .accessibilityValue("Current \(PrototypeFormatting.euro(totalCents)), previous \(PrototypeFormatting.euro(comparisonCents))")
             }

@@ -24,6 +24,10 @@ enum DatasetValidator {
 
         try validateInvoices(dataset.salesInvoices, label: "sales")
         try validateInvoices(dataset.purchaseInvoices, label: "purchase")
+        guard !dataset.quotes.isEmpty,
+              dataset.quotes.allSatisfy({ $0.netTotalCents + $0.ivaTotalCents == $0.grossTotalCents }) else {
+            throw DatasetValidationError.invalid("Quote totals must reconcile.")
+        }
         let bankIDs = Set(dataset.bankAccounts.map(\.id))
         guard dataset.salesInvoices.allSatisfy({ bankIDs.contains($0.expectedBankAccountId) }),
               dataset.purchaseInvoices.allSatisfy({ bankIDs.contains($0.expectedBankAccountId) }) else {

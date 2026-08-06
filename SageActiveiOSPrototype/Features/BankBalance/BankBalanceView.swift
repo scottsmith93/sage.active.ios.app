@@ -322,13 +322,15 @@ private struct CashFlowChartCard: View {
                 Text("Expected cash movement")
                     .font(.headline)
 
-                Text(PrototypeFormatting.euro(forecast.netMovementCents))
-                    .font(.title2.bold())
-                    .foregroundStyle(forecast.netMovementCents >= 0 ? .green : .red)
+                VStack(alignment: .leading, spacing: PrototypeTheme.relatedSpacing) {
+                    Text(PrototypeFormatting.euro(forecast.netMovementCents))
+                        .font(.title2.bold())
+                        .foregroundStyle(forecast.netMovementCents >= 0 ? PrototypeTheme.positive : PrototypeTheme.negative)
 
-                Text("\(PrototypeFormatting.euro(forecast.totalMoneyInCents)) in − \(PrototypeFormatting.euro(forecast.totalMoneyOutCents)) out")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    Text("\(PrototypeFormatting.euro(forecast.totalMoneyInCents)) in − \(PrototypeFormatting.euro(forecast.totalMoneyOutCents)) out")
+                        .font(.footnote)
+                        .foregroundStyle(PrototypeTheme.supportingText)
+                }
 
                 if forecast.cashFlow.isEmpty {
                     ContentUnavailableView(
@@ -391,6 +393,7 @@ private struct CashFlowChartCard: View {
                     }
                     .chartXSelection(value: $selection)
                     .frame(height: 240)
+                    .padding(.top, 10)
                     .accessibilityLabel("Expected money in and money out")
                     .accessibilityValue("Net movement \(PrototypeFormatting.euro(forecast.netMovementCents))")
                 }

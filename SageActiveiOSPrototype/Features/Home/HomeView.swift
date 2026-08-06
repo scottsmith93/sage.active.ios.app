@@ -85,9 +85,36 @@ struct OverviewView: View {
     var body: some View {
         VStack(spacing: 16) {
             BankBalanceHomeCard(store: store)
+            PendingQuotesCard(store: store, includeIva: includeIva)
             InvoiceSummaryCard(kind: .sales, store: store, includeIva: includeIva)
             InvoiceSummaryCard(kind: .purchases, store: store, includeIva: includeIva)
         }
+    }
+}
+
+private struct PendingQuotesCard: View {
+    let store: PrototypeStore
+    let includeIva: Bool
+
+    var body: some View {
+        let summary = store.pendingQuoteSummary(includeIva: includeIva)
+        PrototypeCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Quotes")
+                    .font(.headline)
+
+                VStack(alignment: .leading, spacing: PrototypeTheme.relatedSpacing) {
+                    Text(PrototypeFormatting.euro(summary.amountCents))
+                        .font(.title2.bold())
+                        .contentTransition(.numericText())
+                    Text("\(summary.count) pending quotes")
+                        .font(.subheadline)
+                        .foregroundStyle(PrototypeTheme.supportingText)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Pending quotes, \(summary.count), total value \(PrototypeFormatting.euro(summary.amountCents))")
     }
 }
 
@@ -189,7 +216,7 @@ private struct InvoiceSummaryCard: View {
         let all = summary(.all)
         PrototypeCard {
             VStack(alignment: .leading, spacing: 14) {
-                Text("\(kind.rawValue) outstanding")
+                Text(kind.rawValue)
                     .font(.headline)
 
                 VStack(alignment: .leading, spacing: PrototypeTheme.relatedSpacing) {
@@ -216,7 +243,7 @@ private struct InvoiceSummaryCard: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                     }
-                    .font(.subheadline.weight(.semibold))
+                    .font(.subheadline)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -246,14 +273,14 @@ private struct InvoiceSummaryLink: View {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(urgency == .dueSoon ? "Due in the next 7 days" : urgency.rawValue)
-                        .font(.subheadline.weight(.semibold))
+                        .font(.subheadline)
                     Text("\(summary.count) invoices")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Text(PrototypeFormatting.euro(summary.amountCents))
-                    .font(.subheadline.weight(.semibold))
+                    .font(.subheadline)
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)

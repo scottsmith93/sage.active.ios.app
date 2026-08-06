@@ -131,6 +131,63 @@
     { "id": "item-onboarding-package", "name": "Onboarding package", "kind": "service", "unit": "package" },
     { "id": "item-accessibility-review", "name": "Accessibility review", "kind": "service", "unit": "review" }
   ],
+  "quotes": [
+    {
+      "id": "quote-Q-2026-031",
+      "number": "Q-2026-031",
+      "customerId": "customer-mar-azul",
+      "status": "pending",
+      "issueDate": "2026-07-28",
+      "expiryDate": "2026-08-27",
+      "netTotalCents": 300000,
+      "ivaTotalCents": 63000,
+      "grossTotalCents": 363000
+    },
+    {
+      "id": "quote-Q-2026-034",
+      "number": "Q-2026-034",
+      "customerId": "customer-norte-digital",
+      "status": "pending",
+      "issueDate": "2026-08-01",
+      "expiryDate": "2026-08-31",
+      "netTotalCents": 180000,
+      "ivaTotalCents": 37800,
+      "grossTotalCents": 217800
+    },
+    {
+      "id": "quote-Q-2026-037",
+      "number": "Q-2026-037",
+      "customerId": "customer-solera",
+      "status": "accepted",
+      "issueDate": "2026-08-02",
+      "expiryDate": "2026-09-01",
+      "netTotalCents": 250000,
+      "ivaTotalCents": 52500,
+      "grossTotalCents": 302500
+    },
+    {
+      "id": "quote-Q-2026-039",
+      "number": "Q-2026-039",
+      "customerId": "customer-estudio-central",
+      "status": "pending",
+      "issueDate": "2026-08-04",
+      "expiryDate": "2026-09-03",
+      "netTotalCents": 420000,
+      "ivaTotalCents": 88200,
+      "grossTotalCents": 508200
+    },
+    {
+      "id": "quote-Q-2026-042",
+      "number": "Q-2026-042",
+      "customerId": "customer-luz-verde",
+      "status": "draft",
+      "issueDate": "2026-08-06",
+      "expiryDate": "2026-09-05",
+      "netTotalCents": 95000,
+      "ivaTotalCents": 19950,
+      "grossTotalCents": 114950
+    }
+  ],
   "salesInvoices": [
     {
       "id": "sales-SI-2026-041",

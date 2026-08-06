@@ -19,6 +19,9 @@ This is a research prototype. It is not an accounting system and makes no claim 
 - Native semantic page and card colours that adapt to system appearance.
 - Bank-account inclusion controls and six native chart-colour choices.
 - Visible chart callouts when a chart is pressed and dragged.
+- A pending-quotes KPI on Overview.
+- A native WidgetKit Home Screen widget for unpaid sales and purchase invoices.
+- A temporary monochrome app icon and the Home Screen name `Sage Active`.
 
 ## Run it in the iPhone Simulator
 
@@ -30,6 +33,27 @@ This is a research prototype. It is not an accounting system and makes no claim 
 
 No developer account, API key, server, package installation or real bank connection is required for the Simulator build.
 
+## Add the Home Screen widget
+
+1. Run Sage Active at least once after installing it. Apple requires this before a new widget appears in the widget gallery.
+2. Return to the iPhone Home Screen.
+3. Touch and hold an empty area, then choose to add a widget.
+4. Search for `Sage Active` and select `Invoice actions`.
+5. Choose the small or medium size and add it to the Home Screen.
+
+The prototype widget displays the same fictional gross unpaid totals as the Overview dataset: `10.000 €` of sales invoices and `7350 €` of purchase invoices. It uses a static timeline for now. A later API or shared-data phase can keep it synchronized with live app data.
+
+## Add Dark Mode to Control Centre
+
+The app and widget follow the iPhone’s system appearance automatically; there is no app-specific appearance override.
+
+1. Open Control Centre.
+2. Touch and hold an empty area to edit it.
+3. Tap `Add a Control`.
+4. Select Apple’s `Dark Mode` control.
+
+After it is added, use that control to switch Sage Active between Light and Dark Mode.
+
 ## Where to make common prototype changes
 
 - `Resources/prototype-dataset.json`: all fictional businesses, accounts, invoices, history and rankings.
@@ -37,6 +61,7 @@ No developer account, API key, server, package installation or real bank connect
 - `Features/BankBalance/BankBalanceView.swift`: forecast and cash-flow charts.
 - `Features/Insights/InsightsView.swift`: historical comparisons and rankings.
 - `Features/Invoices/InvoiceViews.swift`: read-only invoice routes.
+- `SageActiveWidgets/SageActiveWidgets.swift`: the Home Screen KPI widget.
 - `Shared/PrototypeCard.swift`: the reusable card container.
 - `Shared/Formatting.swift`: Spanish dates, euros and percentages.
 - `Data/PrototypeStore.swift`: calculations and mock-data access.
@@ -66,6 +91,7 @@ The current version deliberately uses standard native styling so information arc
 ## Known prototype boundaries
 
 - All customers, invoices, forecasts and account values are fictional.
+- Quotes and WidgetKit invoice totals are also fictional.
 - Bank institutions currently use compact text badges. Approved logo artwork can replace these when supplied.
 - Forecasts are deterministic demonstrations based on invoice expected-cash dates; they are not financial predictions.
 - Fiscal year currently follows the Spanish scenario’s calendar year.

@@ -19,6 +19,9 @@ The project owner is an experienced product designer learning native development
 - Use Apple semantic colours for page and card surfaces until company tokens are supplied.
 - Keep Insights months chronological from left to right and initially centre the current month.
 - Bank-account selection changes both the forecast starting balance and the invoice movements assigned to those accounts.
+- Keep the app and widget responsive to the system appearance; do not force a colour scheme.
+- Keep the Overview quotes card to one pending-value KPI with no overdue or due-soon breakdown.
+- Treat WidgetKit totals as static fictional prototype data until a shared data source is explicitly added.
 - Use Spanish regional currency formatting.
 - Use fictional data only.
 

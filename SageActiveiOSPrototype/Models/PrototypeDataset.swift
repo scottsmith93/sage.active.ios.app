@@ -9,6 +9,7 @@ struct PrototypeDataset: Decodable {
     let customers: [NamedEntity]
     let suppliers: [NamedEntity]
     let catalogItems: [CatalogItem]
+    let quotes: [Quote]
     let salesInvoices: [SalesInvoice]
     let purchaseInvoices: [PurchaseInvoice]
     let historicalPerformance: [PerformancePeriod]
@@ -63,6 +64,18 @@ struct CatalogItem: Decodable, Identifiable {
     let name: String
     let kind: String
     let unit: String
+}
+
+struct Quote: Decodable, Identifiable {
+    let id: String
+    let number: String
+    let customerId: String
+    let status: String
+    let issueDate: String
+    let expiryDate: String
+    let netTotalCents: Int
+    let ivaTotalCents: Int
+    let grossTotalCents: Int
 }
 
 protocol OutstandingInvoice: Identifiable {

@@ -3,6 +3,9 @@ import SwiftUI
 enum PrototypeTheme {
     static let pageBackground = Color(uiColor: .secondarySystemBackground)
     static let cardBackground = Color(uiColor: .systemBackground)
+    static let positive = Color(uiColor: .systemGreen).mix(with: .primary, by: 0.18)
+    static let negative = Color(uiColor: .systemRed)
+    static let supportingText = Color.primary.opacity(0.68)
     static let cardCornerRadius: CGFloat = 24
     static let pageSpacing: CGFloat = 16
     static let relatedSpacing: CGFloat = 4
