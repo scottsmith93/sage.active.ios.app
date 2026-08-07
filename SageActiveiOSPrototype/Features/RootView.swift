@@ -36,6 +36,9 @@ struct RootView: View {
                     }
                     .tag(AppTab.sales)
                 }
+                .tint(PrototypeTheme.brand)
+                .toolbarBackground(.regularMaterial, for: .tabBar)
+                .toolbarBackground(.visible, for: .tabBar)
             } else {
                 NavigationStack {
                 ContentUnavailableView(
@@ -50,6 +53,14 @@ struct RootView: View {
             }
         }
         .background(PrototypeTheme.pageBackground.ignoresSafeArea())
+        .onAppear {
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("-showSales") {
+                selectedTab = .sales
+            } else if arguments.contains("-showBankBalance") || arguments.contains("-showDisplaySettings") || arguments.contains("-showInsights") {
+                selectedTab = .dashboard
+            }
+        }
         .onOpenURL { url in
             if url.scheme == "sageactive" {
                 selectedTab = .dashboard

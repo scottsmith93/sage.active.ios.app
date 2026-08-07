@@ -13,10 +13,13 @@ struct HomeView: View {
     @State private var mode: HomeMode
     @State private var showsDisplaySettings = false
     @AppStorage("includeIvaInAnalytics") private var includeIva = true
+    @AppStorage("cashInChartColour") private var cashInColourRaw = ChartColour.green.rawValue
+    @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.orange.rawValue
 
     init(store: PrototypeStore, initialMode: HomeMode = .overview) {
         self.store = store
         _mode = State(initialValue: initialMode)
+        _showsDisplaySettings = State(initialValue: ProcessInfo.processInfo.arguments.contains("-showDisplaySettings"))
     }
 
     var body: some View {
@@ -62,11 +65,20 @@ struct HomeView: View {
                 .frame(height: 32)
                 .accessibilityLabel("Display settings")
                 .popover(isPresented: $showsDisplaySettings) {
-                    Toggle("Include IVA in figures", isOn: $includeIva)
-                        .toggleStyle(.switch)
-                        .padding()
-                        .frame(minWidth: 260)
-                        .presentationCompactAdaptation(.popover)
+                    VStack(alignment: .leading, spacing: 16) {
+                        Toggle("Include IVA in figures", isOn: $includeIva)
+                            .toggleStyle(.switch)
+
+                        Divider()
+
+                        Text("Chart colours")
+                            .font(.headline)
+                        ChartColourPicker(title: "Sales / money in", selection: cashInColourBinding)
+                        ChartColourPicker(title: "Purchases / money out", selection: cashOutColourBinding)
+                    }
+                    .padding()
+                    .frame(minWidth: 320)
+                    .presentationCompactAdaptation(.popover)
                 }
             }
 
@@ -75,6 +87,20 @@ struct HomeView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.top, 4)
+    }
+
+    private var cashInColourBinding: Binding<ChartColour> {
+        Binding(
+            get: { ChartColour(rawValue: cashInColourRaw) ?? .green },
+            set: { cashInColourRaw = $0.rawValue }
+        )
+    }
+
+    private var cashOutColourBinding: Binding<ChartColour> {
+        Binding(
+            get: { ChartColour(rawValue: cashOutColourRaw) ?? .orange },
+            set: { cashOutColourRaw = $0.rawValue }
+        )
     }
 }
 
@@ -134,53 +160,53 @@ private struct BankBalanceHomeCard: View {
                     HStack(alignment: .center, spacing: 12) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(PrototypeFormatting.euro(store.currentBalanceCents))
-                                .font(.title.bold())
+                                .font(.title2.bold())
                                 .foregroundStyle(.primary)
                                 .contentTransition(.numericText())
 
-                            if let change = store.homeBalanceChange {
-                                Label(
-                                    PrototypeFormatting.percent(change),
-                                    systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right"
-                                )
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(change >= 0 ? .green : .red)
+                            HStack(spacing: 10) {
+                                if let change = store.homeBalanceChange {
+                                    Label(
+                                        PrototypeFormatting.percent(change),
+                                        systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right"
+                                    )
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundStyle(change >= 0 ? .green : .red)
+                                }
+
+                                if let accounts = store.dataset?.bankAccounts {
+                                    HStack(spacing: -4) {
+                                        ForEach(accounts) { account in
+                                            BankBadge(name: account.institutionName)
+                                        }
+                                    }
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityLabel("Accounts connected from " + accounts.map(\.institutionName).joined(separator: ", "))
+                                }
                             }
                         }
 
                         Spacer(minLength: 8)
 
-                        VStack(alignment: .trailing, spacing: 6) {
-                            if let accounts = store.dataset?.bankAccounts {
-                                HStack(spacing: 4) {
-                                    ForEach(accounts) { account in
-                                        BankBadge(name: account.institutionName)
-                                    }
+                        HStack(spacing: 8) {
+                            if let history = store.dataset?.bankBalanceHistory {
+                                Chart(history) { point in
+                                    LineMark(
+                                        x: .value("Date", point.date),
+                                        y: .value("Balance", point.balanceCents)
+                                    )
+                                    .interpolationMethod(.catmullRom)
+                                    .foregroundStyle((store.homeBalanceChange ?? 0) >= 0 ? .green : .red)
                                 }
-                                .accessibilityElement(children: .combine)
-                                .accessibilityLabel("Accounts connected from " + accounts.map(\.institutionName).joined(separator: ", "))
+                                .chartXAxis(.hidden)
+                                .chartYAxis(.hidden)
+                                .frame(width: 104, height: 32)
+                                .accessibilityHidden(true)
                             }
 
-                            HStack(spacing: 8) {
-                                if let history = store.dataset?.bankBalanceHistory {
-                                    Chart(history) { point in
-                                        LineMark(
-                                            x: .value("Date", point.date),
-                                            y: .value("Balance", point.balanceCents)
-                                        )
-                                        .interpolationMethod(.catmullRom)
-                                        .foregroundStyle((store.homeBalanceChange ?? 0) >= 0 ? .green : .red)
-                                    }
-                                    .chartXAxis(.hidden)
-                                    .chartYAxis(.hidden)
-                                    .frame(width: 104, height: 32)
-                                    .accessibilityHidden(true)
-                                }
-
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                            }
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }

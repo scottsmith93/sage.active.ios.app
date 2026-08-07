@@ -30,6 +30,8 @@ struct InsightsView: View {
     @State private var rankingMetric: RankingMetric = .revenue
     @State private var selectedRevenueLabel: String?
     @State private var selectedPurchaseLabel: String?
+    @AppStorage("cashInChartColour") private var cashInColourRaw = ChartColour.green.rawValue
+    @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.orange.rawValue
 
     var body: some View {
         VStack(spacing: 16) {
@@ -39,6 +41,7 @@ struct InsightsView: View {
                 totalCents: selectedRevenueTotal,
                 comparisonCents: comparisonRevenueTotal,
                 bars: revenueBars,
+                primaryColour: cashInColour,
                 selection: $selectedRevenueLabel
             )
             .padding(.horizontal)
@@ -47,6 +50,7 @@ struct InsightsView: View {
                 totalCents: selectedPurchaseTotal,
                 comparisonCents: comparisonPurchaseTotal,
                 bars: purchaseBars,
+                primaryColour: cashOutColour,
                 selection: $selectedPurchaseLabel
             )
             .padding(.horizontal)
@@ -112,6 +116,14 @@ struct InsightsView: View {
         .onChange(of: periodType) {
             selectedPeriod = periodType == .month ? "2026-08-MTD" : "2026"
         }
+    }
+
+    private var cashInColour: Color {
+        (ChartColour(rawValue: cashInColourRaw) ?? .green).colour
+    }
+
+    private var cashOutColour: Color {
+        (ChartColour(rawValue: cashOutColourRaw) ?? .orange).colour
     }
 
     private var availableMonths: [PerformancePeriod] {
@@ -236,6 +248,7 @@ private struct PerformanceChartCard: View {
     let totalCents: Int
     let comparisonCents: Int
     let bars: [ComparisonBar]
+    let primaryColour: Color
     @Binding var selection: String?
     @State private var showsRevenueExplanation = false
 
@@ -283,7 +296,7 @@ private struct PerformanceChartCard: View {
                             y: .value("Amount", bar.cents)
                         )
                         .position(by: .value("Series", bar.series))
-                        .foregroundStyle(by: .value("Series", bar.series))
+                        .foregroundStyle(primaryColour.opacity(bar.series == "Current" ? 1 : 0.35))
                     }
 
                     if let selection, !selectedBars.isEmpty {

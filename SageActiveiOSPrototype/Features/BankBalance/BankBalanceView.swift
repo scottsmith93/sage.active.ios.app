@@ -1,23 +1,6 @@
 import Charts
 import SwiftUI
 
-private enum ChartColour: String, CaseIterable, Identifiable {
-    case blue, green, orange, purple, pink, teal
-
-    var id: Self { self }
-    var name: String { rawValue.capitalized }
-    var colour: Color {
-        switch self {
-        case .blue: .blue
-        case .green: .green
-        case .orange: .orange
-        case .purple: .purple
-        case .pink: .pink
-        case .teal: .teal
-        }
-    }
-}
-
 struct BankBalanceView: View {
     let store: PrototypeStore
 
@@ -85,15 +68,7 @@ struct BankBalanceView: View {
         .sheet(isPresented: $showsSettings) {
             BankBalanceSettingsSheet(
                 accounts: store.dataset?.bankAccounts ?? [],
-                selectedBankIDs: $selectedBankIDs,
-                cashInColour: Binding(
-                    get: { cashInColour },
-                    set: { cashInColourRaw = $0.rawValue }
-                ),
-                cashOutColour: Binding(
-                    get: { cashOutColour },
-                    set: { cashOutColourRaw = $0.rawValue }
-                )
+                selectedBankIDs: $selectedBankIDs
             )
             .presentationDetents([.fraction(0.8), .large])
             .presentationDragIndicator(.visible)
@@ -123,8 +98,6 @@ struct BankBalanceView: View {
 private struct BankBalanceSettingsSheet: View {
     let accounts: [BankAccount]
     @Binding var selectedBankIDs: Set<String>
-    @Binding var cashInColour: ChartColour
-    @Binding var cashOutColour: ChartColour
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -148,11 +121,6 @@ private struct BankBalanceSettingsSheet: View {
                 }
                 .listRowBackground(PrototypeTheme.cardBackground)
 
-                Section("Cash-flow chart colours") {
-                    ChartColourPicker(title: "Money in", selection: $cashInColour)
-                    ChartColourPicker(title: "Money out", selection: $cashOutColour)
-                }
-                .listRowBackground(PrototypeTheme.cardBackground)
             }
             .scrollContentBackground(.hidden)
             .background(PrototypeTheme.pageBackground)
@@ -174,40 +142,6 @@ private struct BankBalanceSettingsSheet: View {
                 else { selectedBankIDs.remove(id) }
             }
         )
-    }
-}
-
-private struct ChartColourPicker: View {
-    let title: String
-    @Binding var selection: ChartColour
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-            HStack(spacing: 12) {
-                ForEach(ChartColour.allCases) { option in
-                    Button {
-                        selection = option
-                    } label: {
-                        Circle()
-                            .fill(option.colour)
-                            .frame(width: 28, height: 28)
-                            .overlay {
-                                if selection == option {
-                                    Image(systemName: "checkmark")
-                                        .font(.caption.bold())
-                                        .foregroundStyle(.white)
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(title), \(option.name)")
-                    .accessibilityAddTraits(selection == option ? .isSelected : [])
-                }
-            }
-        }
-        .padding(.vertical, 4)
     }
 }
 
@@ -322,14 +256,19 @@ private struct CashFlowChartCard: View {
                 Text("Expected cash movement")
                     .font(.headline)
 
-                VStack(alignment: .leading, spacing: PrototypeTheme.relatedSpacing) {
+                HStack(alignment: .firstTextBaseline, spacing: 16) {
                     Text(PrototypeFormatting.euro(forecast.netMovementCents))
                         .font(.title2.bold())
                         .foregroundStyle(forecast.netMovementCents >= 0 ? PrototypeTheme.positive : PrototypeTheme.negative)
 
-                    Text("\(PrototypeFormatting.euro(forecast.totalMoneyInCents)) in − \(PrototypeFormatting.euro(forecast.totalMoneyOutCents)) out")
-                        .font(.footnote)
-                        .foregroundStyle(PrototypeTheme.supportingText)
+                    Spacer(minLength: 8)
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("\(PrototypeFormatting.euro(forecast.totalMoneyInCents)) in")
+                        Text("\(PrototypeFormatting.euro(forecast.totalMoneyOutCents)) out")
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(PrototypeTheme.supportingText)
                 }
 
                 if forecast.cashFlow.isEmpty {

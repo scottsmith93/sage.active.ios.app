@@ -82,8 +82,7 @@ struct SalesView: View {
         .background(PrototypeTheme.pageBackground)
         .navigationTitle("Sales")
         .navigationSubtitle(hasScrolled ? documentType.rawValue : "")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .always),
@@ -97,7 +96,15 @@ struct SalesView: View {
                     Label("New", systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(PrototypeTheme.brand)
                 .accessibilityLabel("Create a new sales document")
+            }
+        }
+        .onAppear {
+            if ProcessInfo.processInfo.arguments.contains("-showSales") {
+                selectedFilter = "All"
+                sort = .newest
+                searchText = ""
             }
         }
         .onChange(of: documentType) {
@@ -121,22 +128,32 @@ struct SalesView: View {
             HStack(spacing: 8) {
                 Color.clear.frame(width: 8, height: 1)
                 ForEach(filters) { filter in
+                    let isSelected = selectedFilter == filter.name
                     Button {
                         selectedFilter = filter.name
                     } label: {
                         HStack(spacing: 2) {
                             Text(filter.name)
                                 .fontWeight(.medium)
+                                .foregroundStyle(isSelected ? PrototypeTheme.brand : .primary)
                             Text("(\(filter.count))")
                                 .fontWeight(.regular)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(isSelected ? PrototypeTheme.brand : .secondary)
                         }
                         .font(.subheadline)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 8)
+                        .background(
+                            isSelected ? PrototypeTheme.brand.opacity(0.12) : Color(uiColor: .tertiarySystemFill),
+                            in: Capsule()
+                        )
+                        .overlay {
+                            Capsule()
+                                .stroke(isSelected ? PrototypeTheme.brand : .clear, lineWidth: 1.5)
+                        }
                     }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                    .tint(selectedFilter == filter.name ? .accentColor : .secondary)
-                    .accessibilityAddTraits(selectedFilter == filter.name ? .isSelected : [])
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
                 Color.clear.frame(width: 8, height: 1)
             }
@@ -310,11 +327,15 @@ struct SalesView: View {
         }
     }
 
-    private static let sectionDateFormat = Date.FormatStyle()
-        .day(.twoDigits)
-        .month(.abbreviated)
-        .year()
-        .locale(Locale(identifier: "en_GB"))
+    private static let sectionDateFormat: Date.FormatStyle = {
+        var style = Date.FormatStyle()
+            .day(.twoDigits)
+            .month(.abbreviated)
+            .year()
+            .locale(Locale(identifier: "en_GB"))
+        style.timeZone = DateParsing.calendar.timeZone
+        return style
+    }()
 
     private static let orderFixtures: [(number: String, customer: String, date: String, status: String, totalCents: Int)] = [
         ("SO-2026-084", "Mar Azul Hotels S.A.", "2026-08-05", "Pending", 286000),
@@ -385,10 +406,11 @@ private struct SalesDocumentCard: View {
 
     private var statusColour: Color {
         switch document.status {
-        case "Overdue", "Declined": PrototypeTheme.negative
-        case "Partially overdue": .orange
+        case "Overdue", "Partially overdue", "Declined": PrototypeTheme.negative
+        case "Unposted": .orange
         case "Paid", "Closed": PrototypeTheme.positive
-        case "Awaiting payment", "Pending": .blue
+        case "Awaiting payment", "Partially paid", "Pending": .blue
+        case "Draft": .secondary
         default: .secondary
         }
     }

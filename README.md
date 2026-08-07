@@ -25,6 +25,8 @@ This is a research prototype. It is not an accounting system and makes no claim 
 - A native bottom tab bar with Dashboard as the default and a new Sales destination.
 - Shared searchable, sortable and filterable lists for invoices, orders and quotes.
 - Compressed BBVA, CaixaBank and Santander artwork supplied for this prototype.
+- A green native accent for primary actions, selected Sales filters and the active tab.
+- Dashboard-owned chart colour choices shared by Insights and Bank Balance cash-flow charts.
 
 ## Run it in the iPhone Simulator
 
@@ -66,7 +68,7 @@ After it is added, use that control to switch Sage Active between Light and Dark
 - `Features/Invoices/InvoiceViews.swift`: read-only invoice routes.
 - `Features/Sales/SalesView.swift`: the shared Sales list, document filters, sorting and reusable document card.
 - `SageActiveWidgets/SageActiveWidgets.swift`: the Home Screen KPI widget.
-- `Shared/PrototypeCard.swift`: the reusable card container.
+- `Shared/PrototypeCard.swift`: the reusable card container, semantic colours, bank badges and chart-colour picker.
 - `Shared/Formatting.swift`: Spanish dates, euros and percentages.
 - `Data/PrototypeStore.swift`: calculations and mock-data access.
 - `Data/DatasetValidator.swift`: automatic consistency checks for mock data.
@@ -98,6 +100,7 @@ The current version deliberately uses standard native styling so information arc
 - Quotes and WidgetKit invoice totals are also fictional.
 - The supplied bank logos are compressed prototype assets and remain visual only; there are no real bank connections.
 - Sales orders use local fictional fixtures until the example-data source is connected.
+- Two fictional invoices intentionally share an issue date to demonstrate grouped document cards.
 - The prominent Sales create button is intentionally a placeholder; the creation form is the next planned iteration.
 - Forecasts are deterministic demonstrations based on invoice expected-cash dates; they are not financial predictions.
 - Fiscal year currently follows the Spanish scenario’s calendar year.
