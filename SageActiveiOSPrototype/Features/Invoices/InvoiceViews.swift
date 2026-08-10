@@ -48,7 +48,7 @@ struct InvoiceListView: View {
                 }
                 .foregroundStyle(.secondary)
             }
-            .listRowBackground(PrototypeTheme.cardBackground)
+            .listRowBackground(SageActiveTheme.cardBackground)
 
             Section {
                 ForEach(rows) { invoice in
@@ -63,7 +63,7 @@ struct InvoiceListView: View {
                                 .foregroundStyle(.secondary)
                             HStack {
                                 Text(dueDescription(invoice))
-                                    .foregroundStyle(isOverdue(invoice) ? .red : .secondary)
+                                    .foregroundStyle(isOverdue(invoice) ? SageActiveTheme.negativeText : .secondary)
                                 Spacer()
                                 Text(PrototypeFormatting.euro(displayAmount(invoice)))
                                     .fontWeight(.semibold)
@@ -74,10 +74,10 @@ struct InvoiceListView: View {
                     }
                 }
             }
-            .listRowBackground(PrototypeTheme.cardBackground)
+            .listRowBackground(SageActiveTheme.cardBackground)
         }
         .scrollContentBackground(.hidden)
-        .background(PrototypeTheme.pageBackground)
+        .background(SageActiveTheme.pageBackground)
         .navigationTitle(kind.rawValue)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -154,7 +154,7 @@ private struct InvoiceDetailView: View {
                 LabeledContent("Issued", value: PrototypeFormatting.day(invoice.issueDate))
                 LabeledContent("Due", value: PrototypeFormatting.day(invoice.dueDate))
             }
-            .listRowBackground(PrototypeTheme.cardBackground)
+            .listRowBackground(SageActiveTheme.cardBackground)
 
             Section("Amount") {
                 LabeledContent("Subtotal", value: PrototypeFormatting.euro(invoice.netCents))
@@ -166,7 +166,7 @@ private struct InvoiceDetailView: View {
                 LabeledContent("Outstanding", value: PrototypeFormatting.euro(invoice.remainingCents))
                     .fontWeight(.semibold)
             }
-            .listRowBackground(PrototypeTheme.cardBackground)
+            .listRowBackground(SageActiveTheme.cardBackground)
 
             Section {
                 Button {
@@ -177,10 +177,10 @@ private struct InvoiceDetailView: View {
             } footer: {
                 Text("Prototype only. No message will be sent.")
             }
-            .listRowBackground(PrototypeTheme.cardBackground)
+            .listRowBackground(SageActiveTheme.cardBackground)
         }
         .scrollContentBackground(.hidden)
-        .background(PrototypeTheme.pageBackground)
+        .background(SageActiveTheme.pageBackground)
         .navigationTitle(invoice.number)
         .navigationBarTitleDisplayMode(.inline)
         .alert("Reminder simulated", isPresented: $showsReminderConfirmation) {

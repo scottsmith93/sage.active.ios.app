@@ -36,7 +36,7 @@ struct RootView: View {
                     }
                     .tag(AppTab.sales)
                 }
-                .tint(PrototypeTheme.brand)
+                .tint(SageActiveTheme.brand)
                 .toolbarBackground(.regularMaterial, for: .tabBar)
                 .toolbarBackground(.visible, for: .tabBar)
             } else {
@@ -52,7 +52,7 @@ struct RootView: View {
                 }
             }
         }
-        .background(PrototypeTheme.pageBackground.ignoresSafeArea())
+        .background(SageActiveTheme.pageBackground.ignoresSafeArea())
         .onAppear {
             let arguments = ProcessInfo.processInfo.arguments
             if arguments.contains("-showSales") || arguments.contains(where: { $0.hasPrefix("-showCreateInvoice") }) {

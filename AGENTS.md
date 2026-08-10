@@ -16,7 +16,7 @@ The project owner is an experienced product designer learning native development
 - Keep cash-flow forecasts behind the bank-balance route.
 - Treat bank balances and cash movements as IVA-inclusive cash values.
 - Keep bank balances IVA-inclusive; allow invoice and analytical values to respond to the IVA preference.
-- Use Apple semantic colours for page and card surfaces until company tokens are supplied.
+- Use `SageActiveTheme` for app colours; it is the only app styling boundary allowed to import Sage Graphite.
 - Keep Insights months chronological from left to right and initially centre the current month.
 - Bank-account selection changes both the forecast starting balance and the invoice movements assigned to those accounts.
 - Keep the app and widget responsive to the system appearance; do not force a colour scheme.
@@ -26,7 +26,7 @@ The project owner is an experienced product designer learning native development
 - Keep Dashboard as the default tab.
 - Keep Invoice, Order and Quote lists on the shared Sales page template and reusable document card unless a specific exception is requested.
 - Use a black page and dark-grey cards in Dark Mode; use a grey page and white cards in Light Mode.
-- Use Apple system green as the prototype brand accent for primary calls to action, selected Sales filters and the active tab.
+- Use the Graphite primary-accent token for primary calls to action, selected Sales filters and the active tab.
 - Keep Sales / money-in and Purchases / money-out colour choices in Dashboard settings and apply them to both Insights and Bank Balance charts.
 - Keep invoice date grouping in the Spanish scenario time zone.
 - Keep `SalesLineItemCard` reusable across invoice, order and quote creation journeys.
@@ -49,6 +49,9 @@ The project owner is an experienced product designer learning native development
 
 - Keep the architecture small and feature-oriented.
 - Do not add third-party dependencies without approval.
+- Keep the approved Graphite dependency behind `SageActiveTheme`; feature views must not import Graphite directly.
+- Keep Apple-native controls, navigation, sheets, alerts, date pickers and charts unless a specific component adoption is approved.
+- Keep spacing and radii app-owned until Graphite exposes stable semantic DS geometry tokens.
 - Keep mock-data loading behind a data-source boundary so it can be replaced later.
 - Store money as integer cents.
 - Keep calculations out of SwiftUI view bodies when they can be tested independently.

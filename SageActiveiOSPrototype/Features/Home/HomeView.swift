@@ -37,7 +37,7 @@ struct HomeView: View {
             }
             .padding(.bottom, 32)
         }
-        .background(PrototypeTheme.pageBackground)
+        .background(SageActiveTheme.pageBackground)
         .navigationTitle(store.dataset?.business.displayName ?? "Home")
         .navigationBarTitleDisplayMode(.large)
         .refreshable { await store.refresh() }
@@ -129,13 +129,13 @@ private struct PendingQuotesCard: View {
                 Text("Quotes")
                     .font(.headline)
 
-                VStack(alignment: .leading, spacing: PrototypeTheme.relatedSpacing) {
+                VStack(alignment: .leading, spacing: SageActiveTheme.relatedSpacing) {
                     Text(PrototypeFormatting.euro(summary.amountCents))
                         .font(.title2.bold())
                         .contentTransition(.numericText())
                     Text("\(summary.count) pending quotes")
                         .font(.subheadline)
-                        .foregroundStyle(PrototypeTheme.supportingText)
+                        .foregroundStyle(SageActiveTheme.supportingText)
                 }
             }
         }
@@ -171,7 +171,7 @@ private struct BankBalanceHomeCard: View {
                                         systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right"
                                     )
                                     .font(.caption2.weight(.medium))
-                                    .foregroundStyle(change >= 0 ? .green : .red)
+                                    .foregroundStyle(change >= 0 ? SageActiveTheme.positiveText : SageActiveTheme.negativeText)
                                 }
 
                                 if let accounts = store.dataset?.bankAccounts {
@@ -196,7 +196,11 @@ private struct BankBalanceHomeCard: View {
                                         y: .value("Balance", point.balanceCents)
                                     )
                                     .interpolationMethod(.catmullRom)
-                                    .foregroundStyle((store.homeBalanceChange ?? 0) >= 0 ? .green : .red)
+                                    .foregroundStyle(
+                                        (store.homeBalanceChange ?? 0) >= 0
+                                            ? SageActiveTheme.positiveVisual
+                                            : SageActiveTheme.negativeVisual
+                                    )
                                 }
                                 .chartXAxis(.hidden)
                                 .chartYAxis(.hidden)
@@ -249,7 +253,7 @@ private struct InvoiceSummaryCard: View {
                 Text(kind.rawValue)
                     .font(.headline)
 
-                VStack(alignment: .leading, spacing: PrototypeTheme.relatedSpacing) {
+                VStack(alignment: .leading, spacing: SageActiveTheme.relatedSpacing) {
                     Text(PrototypeFormatting.euro(all.amountCents))
                         .font(.title2.bold())
                         .contentTransition(.numericText())

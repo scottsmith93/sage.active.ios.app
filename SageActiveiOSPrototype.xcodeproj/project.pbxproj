@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		B10000000000000000000011 /* SageActiveWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* SageActiveWidgets.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C10000000000000000000001 /* Graphite in Frameworks */ = {isa = PBXBuildFile; productRef = C10000000000000000000003 /* Graphite */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +81,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C10000000000000000000001 /* Graphite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -133,6 +135,7 @@
 			);
 			name = SageActiveiOSPrototype;
 			packageProductDependencies = (
+				C10000000000000000000003 /* Graphite */,
 			);
 			productName = SageActiveiOSPrototype;
 			productReference = A10000000000000000000005 /* SageActiveiOSPrototype.app */;
@@ -187,6 +190,9 @@
 			);
 			mainGroup = A10000000000000000000003;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C10000000000000000000002 /* XCRemoteSwiftPackageReference "sage_graphite_mobile_ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A10000000000000000000004 /* Products */;
 			projectDirPath = "";
@@ -417,6 +423,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C10000000000000000000002 /* XCRemoteSwiftPackageReference "sage_graphite_mobile_ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Sage/sage_graphite_mobile_ios.git";
+			requirement = {
+				branch = develop;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C10000000000000000000003 /* Graphite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C10000000000000000000002 /* XCRemoteSwiftPackageReference "sage_graphite_mobile_ios" */;
+			productName = Graphite;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1000000000000000000000A /* Project object */;
 }

@@ -147,7 +147,7 @@ struct CreateSalesInvoiceView: View {
                 .padding()
                 .padding(.bottom, canCreate ? 150 : 24)
             }
-            .background(PrototypeTheme.pageBackground)
+            .background(SageActiveTheme.pageBackground)
             .navigationTitle("Create sales invoice")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -196,7 +196,7 @@ struct CreateSalesInvoiceView: View {
     private var requiredInformationNote: some View {
         HStack(spacing: 3) {
             Text("*")
-                .foregroundStyle(.red)
+                .foregroundStyle(SageActiveTheme.negativeVisual)
             Text("Indicates required information.")
                 .foregroundStyle(.primary)
         }
@@ -352,7 +352,7 @@ private struct RequiredLabel: View {
             Text(text)
             if required {
                 Text("*")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(SageActiveTheme.negativeVisual)
             }
         }
         .foregroundStyle(.primary)
@@ -381,7 +381,7 @@ private struct InvoiceSelectionField: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(14)
-                .background(PrototypeTheme.cardBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(SageActiveTheme.cardBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
             .buttonStyle(.plain)
         }
@@ -401,9 +401,9 @@ private struct AddProductsButton: View {
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
             }
-            .foregroundStyle(PrototypeTheme.brand)
+            .foregroundStyle(SageActiveTheme.brand)
             .padding(16)
-            .background(PrototypeTheme.cardBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(SageActiveTheme.cardBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -510,7 +510,7 @@ private struct InvoiceSummaryFooter: View {
                     .frame(maxWidth: .infinity)
             }
                 .buttonStyle(.borderedProminent)
-                .tint(PrototypeTheme.brand)
+                .tint(SageActiveTheme.brand)
                 .controlSize(.large)
         }
         .padding(16)
@@ -741,7 +741,7 @@ private struct ProductDetailsSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(PrototypeTheme.brand)
+                    .tint(SageActiveTheme.brand)
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
                     .disabled(!isValid)
@@ -753,7 +753,7 @@ private struct ProductDetailsSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .tint(PrototypeTheme.brand)
+                    .tint(SageActiveTheme.brand)
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
                     .disabled(!isValid)
@@ -761,7 +761,7 @@ private struct ProductDetailsSheet: View {
                 .listRowBackground(Color.clear)
             }
             .scrollContentBackground(.hidden)
-            .background(PrototypeTheme.pageBackground)
+            .background(SageActiveTheme.pageBackground)
             .navigationTitle("Add product to invoice")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -881,7 +881,7 @@ private struct DocumentPrefixSelectionSheet: View {
                         Spacer()
                         if prefix == selection {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(PrototypeTheme.brand)
+                                .foregroundStyle(SageActiveTheme.brand)
                         }
                     }
                 }

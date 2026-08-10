@@ -1,23 +1,5 @@
 import SwiftUI
 
-enum PrototypeTheme {
-    static let pageBackground = Color(uiColor: UIColor { traits in
-        let colour: UIColor = traits.userInterfaceStyle == .dark ? .black : .secondarySystemBackground
-        return colour.resolvedColor(with: traits)
-    })
-    static let cardBackground = Color(uiColor: UIColor { traits in
-        let colour: UIColor = traits.userInterfaceStyle == .dark ? .secondarySystemBackground : .systemBackground
-        return colour.resolvedColor(with: traits)
-    })
-    static let positive = Color(uiColor: .systemGreen).mix(with: .primary, by: 0.18)
-    static let negative = Color(uiColor: .systemRed)
-    static let brand = Color(uiColor: .systemGreen)
-    static let supportingText = Color.primary.opacity(0.68)
-    static let cardCornerRadius: CGFloat = 24
-    static let pageSpacing: CGFloat = 16
-    static let relatedSpacing: CGFloat = 4
-}
-
 struct PrototypeCard<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -26,8 +8,8 @@ struct PrototypeCard<Content: View>: View {
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                PrototypeTheme.cardBackground,
-                in: RoundedRectangle(cornerRadius: PrototypeTheme.cardCornerRadius, style: .continuous)
+                SageActiveTheme.cardBackground,
+                in: RoundedRectangle(cornerRadius: SageActiveTheme.cardCornerRadius, style: .continuous)
             )
     }
 }
@@ -47,7 +29,7 @@ struct BankBadge: View {
                 Circle()
                     .stroke(.quaternary, lineWidth: 0.5)
             }
-            .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
+            .shadow(color: SageActiveTheme.shadow, radius: 2, y: 1)
             .accessibilityLabel(name)
     }
 

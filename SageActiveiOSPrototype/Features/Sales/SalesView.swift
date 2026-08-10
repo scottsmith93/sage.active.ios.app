@@ -80,7 +80,7 @@ struct SalesView: View {
             }
             .padding(.vertical, 12)
         }
-        .background(PrototypeTheme.pageBackground)
+        .background(SageActiveTheme.pageBackground)
         .navigationTitle("Sales")
         .navigationSubtitle(hasScrolled ? documentType.rawValue : "")
         .navigationBarTitleDisplayMode(.large)
@@ -97,7 +97,7 @@ struct SalesView: View {
                     Label("New", systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(PrototypeTheme.brand)
+                .tint(SageActiveTheme.brand)
                 .accessibilityLabel("Create a new sales document")
             }
         }
@@ -138,21 +138,21 @@ struct SalesView: View {
                         HStack(spacing: 2) {
                             Text(filter.name)
                                 .fontWeight(.medium)
-                                .foregroundStyle(isSelected ? PrototypeTheme.brand : .primary)
+                                .foregroundStyle(isSelected ? SageActiveTheme.brand : .primary)
                             Text("(\(filter.count))")
                                 .fontWeight(.regular)
-                                .foregroundStyle(isSelected ? PrototypeTheme.brand : .secondary)
+                                .foregroundStyle(isSelected ? SageActiveTheme.brand : .secondary)
                         }
                         .font(.subheadline)
                         .padding(.horizontal, 13)
                         .padding(.vertical, 8)
                         .background(
-                            isSelected ? PrototypeTheme.brand.opacity(0.12) : Color(uiColor: .tertiarySystemFill),
+                            isSelected ? SageActiveTheme.brand.opacity(0.12) : Color(uiColor: .tertiarySystemFill),
                             in: Capsule()
                         )
                         .overlay {
                             Capsule()
-                                .stroke(isSelected ? PrototypeTheme.brand : .clear, lineWidth: 1.5)
+                                .stroke(isSelected ? SageActiveTheme.brand : .clear, lineWidth: 1.5)
                         }
                     }
                     .buttonStyle(.plain)
@@ -403,16 +403,16 @@ private struct SalesDocumentCard: View {
 
     private var timingColour: Color {
         document.status.contains("overdue") || document.status == "Overdue"
-            ? PrototypeTheme.negative
-            : PrototypeTheme.supportingText
+            ? SageActiveTheme.negativeText
+            : SageActiveTheme.supportingText
     }
 
     private var statusColour: Color {
         switch document.status {
-        case "Overdue", "Partially overdue", "Declined": PrototypeTheme.negative
-        case "Unposted": .orange
-        case "Paid", "Closed": PrototypeTheme.positive
-        case "Awaiting payment", "Partially paid", "Pending": .blue
+        case "Overdue", "Partially overdue", "Declined": SageActiveTheme.negativeText
+        case "Unposted": SageActiveTheme.warningText
+        case "Paid", "Closed": SageActiveTheme.positiveText
+        case "Awaiting payment", "Partially paid", "Pending": SageActiveTheme.informationText
         case "Draft": .secondary
         default: .secondary
         }

@@ -16,7 +16,7 @@ This is a research prototype. It is not an accounting system and makes no claim 
 - Read-only sales and purchase invoice lists and details.
 - Safe simulated reminder feedback; no messages or data leave the app.
 - Native pull-to-refresh with a short simulated delay.
-- Native semantic page and card colours that adapt to system appearance.
+- Sage Graphite semantic page, card, text and status colours that adapt to system appearance.
 - Bank-account inclusion controls and six native chart-colour choices.
 - Visible chart callouts when a chart is pressed and dragged.
 - A pending-quotes KPI on Overview.
@@ -72,7 +72,8 @@ After it is added, use that control to switch Sage Active between Light and Dark
 - `Features/Sales/SalesView.swift`: the shared Sales list, document filters, sorting and reusable document card.
 - `Features/Sales/CreateSalesInvoiceView.swift`: invoice creation, selection sheets, product editing and invoice summary.
 - `SageActiveWidgets/SageActiveWidgets.swift`: the Home Screen KPI widget.
-- `Shared/PrototypeCard.swift`: the reusable card container, semantic colours, bank badges and chart-colour picker.
+- `Shared/SageActiveTheme.swift`: the single adapter from app-facing semantic roles to Sage Graphite tokens.
+- `Shared/PrototypeCard.swift`: the reusable card container, bank badges and chart-colour picker.
 - `Shared/Formatting.swift`: Spanish dates, euros and percentages.
 - `Data/PrototypeStore.swift`: calculations and mock-data access.
 - `Data/DatasetValidator.swift`: automatic consistency checks for mock data.
@@ -85,9 +86,13 @@ Money is stored as integer cents. For example, `4825000` means `48.250,00 €`. 
 
 The app validates the dataset every time it loads. It checks invoice arithmetic, IVA arithmetic, Spanish locale assumptions, ranking references and ranking totals. If a future edit breaks those relationships, the app shows a data-unavailable state rather than presenting misleading values.
 
-## Design-system tokens later
+## Sage Graphite tokens
 
-The current version deliberately uses standard native styling so information architecture can be evaluated first. Its small semantic layer maps the light page to Apple’s `secondarySystemBackground` and cards to `systemBackground`. In Dark Mode it uses a black page with `secondarySystemBackground` cards. Shared spacing and corner-radius values live in `PrototypeCard.swift`. A later styling phase can replace those mappings with company design-system tokens while retaining native controls.
+The app keeps Apple-native controls and behaviour, while `SageActiveTheme` maps its semantic colour roles to the Sage Graphite iOS package. Feature views do not import Graphite directly. This boundary allows the legacy `Theme.GRColorPalette` implementation to be replaced by the future `DSTokens` API in one place.
+
+Graphite is currently resolved from the private `Sage/sage_graphite_mobile_ios` repository's `develop` branch for prototype work. Xcode must have GitHub access to that repository. Move to an approved versioned release when the Graphite maintainers identify one for consuming applications.
+
+Spacing and corner-radius values remain app-owned because this Graphite snapshot does not yet expose stable semantic DS geometry tokens.
 
 ## Reference environment
 
@@ -95,8 +100,8 @@ The current version deliberately uses standard native styling so information arc
 - iOS 26.0 deployment target
 - iPhone 17 Pro simulator on iOS 26.3.1
 - SwiftUI, Swift Charts and Observation
-- No external Swift packages
-- No network access, authentication or analytics
+- Sage Graphite through Swift Package Manager
+- No runtime network access, authentication or analytics; Xcode needs repository access when resolving Graphite
 
 ## Known prototype boundaries
 

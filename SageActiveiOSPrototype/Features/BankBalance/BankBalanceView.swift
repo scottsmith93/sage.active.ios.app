@@ -52,7 +52,7 @@ struct BankBalanceView: View {
             .padding()
             .padding(.bottom, 24)
         }
-        .background(PrototypeTheme.pageBackground)
+        .background(SageActiveTheme.pageBackground)
         .navigationTitle("Bank balance")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -119,11 +119,11 @@ private struct BankBalanceSettingsSheet: View {
                 } footer: {
                     Text("Selected accounts determine both the starting balance and the expected invoice movements included in the forecast.")
                 }
-                .listRowBackground(PrototypeTheme.cardBackground)
+                .listRowBackground(SageActiveTheme.cardBackground)
 
             }
             .scrollContentBackground(.hidden)
-            .background(PrototypeTheme.pageBackground)
+            .background(SageActiveTheme.pageBackground)
             .navigationTitle("Bank balance settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -178,7 +178,7 @@ private struct ProjectionChartCard: View {
                                 systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right"
                             )
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(change >= 0 ? .green : .red)
+                            .foregroundStyle(change >= 0 ? SageActiveTheme.positiveText : SageActiveTheme.negativeText)
                         }
                     }
                 }
@@ -190,7 +190,7 @@ private struct ProjectionChartCard: View {
                             y: .value("Projected balance", point.balanceCents)
                         )
                         .interpolationMethod(.stepEnd)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(SageActiveTheme.informationVisual)
 
                         AreaMark(
                             x: .value("Date", point.date),
@@ -198,7 +198,7 @@ private struct ProjectionChartCard: View {
                             yEnd: .value("Projected balance", point.balanceCents)
                         )
                         .interpolationMethod(.stepEnd)
-                        .foregroundStyle(.blue.opacity(0.08))
+                        .foregroundStyle(SageActiveTheme.informationVisual.opacity(0.08))
                     }
 
                     if let point = selectedPoint {
@@ -214,7 +214,7 @@ private struct ProjectionChartCard: View {
                                 }
                                 .padding(8)
                                 .foregroundStyle(.primary)
-                                .background(PrototypeTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+                                .background(SageActiveTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
                                 .shadow(radius: 3, y: 1)
                             }
                     }
@@ -259,7 +259,11 @@ private struct CashFlowChartCard: View {
                 HStack(alignment: .firstTextBaseline, spacing: 16) {
                     Text(PrototypeFormatting.euro(forecast.netMovementCents))
                         .font(.title2.bold())
-                        .foregroundStyle(forecast.netMovementCents >= 0 ? PrototypeTheme.positive : PrototypeTheme.negative)
+                        .foregroundStyle(
+                            forecast.netMovementCents >= 0
+                                ? SageActiveTheme.positiveText
+                                : SageActiveTheme.negativeText
+                        )
 
                     Spacer(minLength: 8)
 
@@ -268,7 +272,7 @@ private struct CashFlowChartCard: View {
                         Text("\(PrototypeFormatting.euro(forecast.totalMoneyOutCents)) out")
                     }
                     .font(.footnote)
-                    .foregroundStyle(PrototypeTheme.supportingText)
+                    .foregroundStyle(SageActiveTheme.supportingText)
                 }
 
                 if forecast.cashFlow.isEmpty {
@@ -311,7 +315,7 @@ private struct CashFlowChartCard: View {
                                     .font(.caption)
                                     .padding(8)
                                     .foregroundStyle(.primary)
-                                    .background(PrototypeTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+                                    .background(SageActiveTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
                                     .shadow(radius: 3, y: 1)
                                 }
                         }

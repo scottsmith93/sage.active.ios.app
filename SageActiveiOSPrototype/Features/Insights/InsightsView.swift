@@ -274,16 +274,16 @@ private struct PerformanceChartCard: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: PrototypeTheme.relatedSpacing) {
+                VStack(alignment: .leading, spacing: SageActiveTheme.relatedSpacing) {
                     Text(PrototypeFormatting.euro(totalCents))
                         .font(.title2.bold())
 
                     if let change {
                         HStack(spacing: 4) {
                             Text(PrototypeFormatting.percent(change))
-                                .foregroundStyle(change >= 0 ? PrototypeTheme.positive : PrototypeTheme.negative)
+                                .foregroundStyle(change >= 0 ? SageActiveTheme.positiveText : SageActiveTheme.negativeText)
                             Text("from previous period")
-                                .foregroundStyle(PrototypeTheme.supportingText)
+                                .foregroundStyle(SageActiveTheme.supportingText)
                         }
                         .font(.footnote.weight(.medium))
                     }
@@ -313,7 +313,7 @@ private struct PerformanceChartCard: View {
                                 .font(.caption)
                                 .padding(8)
                                 .foregroundStyle(.primary)
-                                .background(PrototypeTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+                                .background(SageActiveTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
                                 .shadow(radius: 3, y: 1)
                             }
                     }
