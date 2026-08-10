@@ -39,7 +39,7 @@ This is a research prototype. It is not an accounting system and makes no claim 
 4. Press the triangular Run button, or press Command–R.
 5. Wait for the Simulator to open. The app starts on the Overview.
 
-No developer account, API key, server, package installation or real bank connection is required for the Simulator build.
+No developer account, API key, server, external package download or real bank connection is required for the Simulator build.
 
 ## Add the Home Screen widget
 
@@ -90,7 +90,7 @@ The app validates the dataset every time it loads. It checks invoice arithmetic,
 
 The app keeps Apple-native controls and behaviour, while `SageActiveTheme` maps its semantic colour roles to the Sage Graphite iOS package. Feature views do not import Graphite directly. This boundary allows the legacy `Theme.GRColorPalette` implementation to be replaced by the future `DSTokens` API in one place.
 
-Graphite is currently resolved from the private `Sage/sage_graphite_mobile_ios` repository's `develop` branch for prototype work. Xcode must have GitHub access to that repository. Move to an approved versioned release when the Graphite maintainers identify one for consuming applications.
+For reliable prototype builds, `Packages/SageGraphiteTokens` contains an authorised local snapshot of only the Graphite colour tokens. It was taken from the private repository's `develop` download on 10 August 2026. The snapshot deliberately excludes Graphite UI components, third-party image libraries and build-tool plugins. Replace it with an approved versioned DS token package when one becomes available.
 
 Spacing and corner-radius values remain app-owned because this Graphite snapshot does not yet expose stable semantic DS geometry tokens.
 
@@ -100,8 +100,8 @@ Spacing and corner-radius values remain app-owned because this Graphite snapshot
 - iOS 26.0 deployment target
 - iPhone 17 Pro simulator on iOS 26.3.1
 - SwiftUI, Swift Charts and Observation
-- Sage Graphite through Swift Package Manager
-- No runtime network access, authentication or analytics; Xcode needs repository access when resolving Graphite
+- A local Sage Graphite token-only Swift package
+- No runtime or build-time network access, authentication or analytics
 
 ## Known prototype boundaries
 

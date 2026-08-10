@@ -190,11 +190,11 @@
 			);
 			mainGroup = A10000000000000000000003;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				C10000000000000000000002 /* XCRemoteSwiftPackageReference "sage_graphite_mobile_ios" */,
-			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A10000000000000000000004 /* Products */;
+			packageReferences = (
+				C10000000000000000000002 /* XCLocalSwiftPackageReference "Packages/SageGraphiteTokens" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -245,6 +245,21 @@
 			targetProxy = B10000000000000000000012 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		C10000000000000000000002 /* XCLocalSwiftPackageReference "Packages/SageGraphiteTokens" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SageGraphiteTokens;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C10000000000000000000003 /* Graphite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C10000000000000000000002 /* XCLocalSwiftPackageReference "Packages/SageGraphiteTokens" */;
+			productName = Graphite;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1000000000000000000000C /* Debug */ = {
@@ -423,25 +438,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		C10000000000000000000002 /* XCRemoteSwiftPackageReference "sage_graphite_mobile_ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Sage/sage_graphite_mobile_ios.git";
-			requirement = {
-				branch = develop;
-				kind = branch;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		C10000000000000000000003 /* Graphite */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C10000000000000000000002 /* XCRemoteSwiftPackageReference "sage_graphite_mobile_ios" */;
-			productName = Graphite;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1000000000000000000000A /* Project object */;
 }
