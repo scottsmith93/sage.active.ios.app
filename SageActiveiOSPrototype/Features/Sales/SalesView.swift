@@ -43,7 +43,7 @@ struct SalesView: View {
     @State private var sort: SalesSort = .newest
     @State private var searchText = ""
     @State private var hasScrolled = false
-    @State private var showsCreationMessage = false
+    @State private var showsInvoiceCreation: Bool
 
     init(store: PrototypeStore) {
         self.store = store
@@ -56,6 +56,7 @@ struct SalesView: View {
             .invoices
         }
         _documentType = State(initialValue: initialType)
+        _showsInvoiceCreation = State(initialValue: arguments.contains { $0.hasPrefix("-showCreateInvoice") })
     }
 
     var body: some View {
@@ -91,7 +92,7 @@ struct SalesView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    showsCreationMessage = true
+                    showsInvoiceCreation = true
                 } label: {
                     Label("New", systemImage: "plus")
                 }
@@ -101,10 +102,14 @@ struct SalesView: View {
             }
         }
         .onAppear {
-            if ProcessInfo.processInfo.arguments.contains("-showSales") {
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("-showSales") {
                 selectedFilter = "All"
                 sort = .newest
                 searchText = ""
+            }
+            if arguments.contains(where: { $0.hasPrefix("-showCreateInvoice") }) {
+                showsInvoiceCreation = true
             }
         }
         .onChange(of: documentType) {
@@ -116,10 +121,8 @@ struct SalesView: View {
         } action: { _, newValue in
             hasScrolled = newValue
         }
-        .alert("Create sales document", isPresented: $showsCreationMessage) {
-            Button("Done", role: .cancel) { }
-        } message: {
-            Text("The creation form will be added in the next iteration. This button currently demonstrates its intended prominence and placement.")
+        .fullScreenCover(isPresented: $showsInvoiceCreation) {
+            CreateSalesInvoiceView()
         }
     }
 

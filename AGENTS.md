@@ -29,6 +29,10 @@ The project owner is an experienced product designer learning native development
 - Use Apple system green as the prototype brand accent for primary calls to action, selected Sales filters and the active tab.
 - Keep Sales / money-in and Purchases / money-out colour choices in Dashboard settings and apply them to both Insights and Bank Balance charts.
 - Keep invoice date grouping in the Spanish scenario time zone.
+- Keep `SalesLineItemCard` reusable across invoice, order and quote creation journeys.
+- Store and calculate sales-document line money as integer cents.
+- Keep customer and café-product fixtures fictional until an approved example-data source replaces them.
+- Show the invoice summary footer only after a customer and at least one valid product line exist.
 - Use Spanish regional currency formatting.
 - Use fictional data only.
 

@@ -7,7 +7,7 @@ private enum AppTab: Hashable {
 
 struct RootView: View {
     @State private var store = PrototypeStore()
-    @State private var selectedTab: AppTab = ProcessInfo.processInfo.arguments.contains("-showSales") ? .sales : .dashboard
+    @State private var selectedTab: AppTab = ProcessInfo.processInfo.arguments.contains("-showSales") || ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-showCreateInvoice") }) ? .sales : .dashboard
 
     var body: some View {
         Group {
@@ -55,7 +55,7 @@ struct RootView: View {
         .background(PrototypeTheme.pageBackground.ignoresSafeArea())
         .onAppear {
             let arguments = ProcessInfo.processInfo.arguments
-            if arguments.contains("-showSales") {
+            if arguments.contains("-showSales") || arguments.contains(where: { $0.hasPrefix("-showCreateInvoice") }) {
                 selectedTab = .sales
             } else if arguments.contains("-showBankBalance") || arguments.contains("-showDisplaySettings") || arguments.contains("-showInsights") {
                 selectedTab = .dashboard

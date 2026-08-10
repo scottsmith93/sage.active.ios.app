@@ -27,6 +27,9 @@ This is a research prototype. It is not an accounting system and makes no claim 
 - Compressed BBVA, CaixaBank and Santander artwork supplied for this prototype.
 - A green native accent for primary actions, selected Sales filters and the active tab.
 - Dashboard-owned chart colour choices shared by Insights and Bank Balance cash-flow charts.
+- A native Create Sales Invoice journey with customer, date, prefix and product selection.
+- A 20-item fictional café-supply catalogue with editable price, quantity, discount and description fields.
+- Reusable sales line-item cards, live taxable-amount calculations and an expandable floating invoice summary.
 
 ## Run it in the iPhone Simulator
 
@@ -67,6 +70,7 @@ After it is added, use that control to switch Sage Active between Light and Dark
 - `Features/Insights/InsightsView.swift`: historical comparisons and rankings.
 - `Features/Invoices/InvoiceViews.swift`: read-only invoice routes.
 - `Features/Sales/SalesView.swift`: the shared Sales list, document filters, sorting and reusable document card.
+- `Features/Sales/CreateSalesInvoiceView.swift`: invoice creation, selection sheets, product editing and invoice summary.
 - `SageActiveWidgets/SageActiveWidgets.swift`: the Home Screen KPI widget.
 - `Shared/PrototypeCard.swift`: the reusable card container, semantic colours, bank badges and chart-colour picker.
 - `Shared/Formatting.swift`: Spanish dates, euros and percentages.
@@ -101,7 +105,7 @@ The current version deliberately uses standard native styling so information arc
 - The supplied bank logos are compressed prototype assets and remain visual only; there are no real bank connections.
 - Sales orders use local fictional fixtures until the example-data source is connected.
 - Two fictional invoices intentionally share an issue date to demonstrate grouped document cards.
-- The prominent Sales create button is intentionally a placeholder; the creation form is the next planned iteration.
+- Creating an invoice remains a local prototype interaction; it does not persist a new document or call an API.
 - Forecasts are deterministic demonstrations based on invoice expected-cash dates; they are not financial predictions.
 - Fiscal year currently follows the Spanish scenario’s calendar year.
 - The app has not been prepared for TestFlight or production signing.
