@@ -508,7 +508,6 @@ private struct InvoiceSummaryFooter: View {
 
             Button(action: onCreate) {
                 Text("Create")
-                    .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
             }
                 .buttonStyle(.borderedProminent)

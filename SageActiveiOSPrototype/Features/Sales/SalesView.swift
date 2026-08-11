@@ -42,6 +42,7 @@ struct SalesView: View {
     @State private var selectedFilter = "All"
     @State private var sort: SalesSort = .newest
     @State private var searchText = ""
+    @State private var hasScrolled = false
     @State private var showsInvoiceCreation: Bool
 
     init(store: PrototypeStore) {
@@ -81,7 +82,6 @@ struct SalesView: View {
         }
         .background(SageActiveTheme.pageBackground)
         .navigationTitle("Sales")
-        .navigationSubtitle(documentType.rawValue)
         .navigationBarTitleDisplayMode(.large)
         .searchable(
             text: $searchText,
@@ -89,17 +89,27 @@ struct SalesView: View {
             prompt: "Search \(documentType.rawValue.lowercased())"
         )
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 0) {
+                    Text("Sales")
+                        .font(.headline)
+                    Text(documentType.rawValue)
+                        .font(.caption2)
+                        .foregroundStyle(SageActiveTheme.supportingText)
+                }
+                .opacity(hasScrolled ? 1 : 0)
+                .accessibilityHidden(!hasScrolled)
+                .animation(.easeInOut(duration: 0.18), value: hasScrolled)
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showsInvoiceCreation = true
                 } label: {
-                    Image(systemName: "plus")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.black)
-                        .frame(width: 44, height: 44)
-                        .background(SageActiveTheme.brand, in: Circle())
+                    Label("New", systemImage: "plus")
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderedProminent)
+                .tint(SageActiveTheme.brand)
                 .accessibilityLabel("Create a new sales document")
             }
         }
@@ -117,6 +127,11 @@ struct SalesView: View {
         .onChange(of: documentType) {
             selectedFilter = "All"
             searchText = ""
+        }
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y > 54
+        } action: { _, newValue in
+            hasScrolled = newValue
         }
         .fullScreenCover(isPresented: $showsInvoiceCreation) {
             CreateSalesInvoiceView()
@@ -139,6 +154,7 @@ struct SalesView: View {
                 }
                 Color.clear.frame(width: 8, height: 1)
             }
+            .padding(.vertical, 3)
         }
     }
 

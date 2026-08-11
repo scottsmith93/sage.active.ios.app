@@ -88,9 +88,10 @@ struct InsightsView: View {
                                 }
                                 Color.clear.frame(width: geometry.size.width * 0.42, height: 1)
                             }
+                            .padding(.vertical, 3)
                         }
                     }
-                    .frame(height: 42)
+                    .frame(height: 48)
                     .onAppear {
                         proxy.scrollTo(selectedPeriod, anchor: .center)
                     }
