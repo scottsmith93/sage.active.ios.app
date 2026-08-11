@@ -9,8 +9,8 @@ struct BankBalanceView: View {
     @State private var selectedCashPeriod: String?
     @State private var selectedBankIDs: Set<String>
     @State private var showsSettings: Bool
-    @AppStorage("cashInChartColour") private var cashInColourRaw = ChartColour.green.rawValue
-    @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.orange.rawValue
+    @AppStorage("cashInChartColour") private var cashInColourRaw = ChartColour.positive.rawValue
+    @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.caution.rawValue
 
     init(store: PrototypeStore) {
         self.store = store
@@ -61,6 +61,7 @@ struct BankBalanceView: View {
                     showsSettings = true
                 } label: {
                     Image(systemName: "gearshape")
+                        .foregroundStyle(SageActiveTheme.primaryText)
                 }
                 .accessibilityLabel("Bank balance settings")
             }
@@ -87,11 +88,11 @@ struct BankBalanceView: View {
     }
 
     private var cashInColour: ChartColour {
-        ChartColour(rawValue: cashInColourRaw) ?? .green
+        ChartColour(rawValue: cashInColourRaw) ?? .positive
     }
 
     private var cashOutColour: ChartColour {
-        ChartColour(rawValue: cashOutColourRaw) ?? .orange
+        ChartColour(rawValue: cashOutColourRaw) ?? .caution
     }
 }
 
@@ -129,6 +130,7 @@ private struct BankBalanceSettingsSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                        .foregroundStyle(SageActiveTheme.primaryText)
                 }
             }
         }
@@ -229,7 +231,7 @@ private struct ProjectionChartCard: View {
                         }
                     }
                 }
-                .chartXSelection(value: $selection)
+                .interactiveChartXSelection($selection)
                 .frame(height: 220)
                 .accessibilityLabel("Projected bank balance")
                 .accessibilityValue("From \(PrototypeFormatting.euro(forecast.currentBalanceCents)) to \(PrototypeFormatting.euro(forecast.projectedBalanceCents))")
@@ -256,7 +258,7 @@ private struct CashFlowChartCard: View {
                 Text("Expected cash movement")
                     .font(.headline)
 
-                HStack(alignment: .firstTextBaseline, spacing: 16) {
+                HStack(alignment: .center, spacing: 16) {
                     Text(PrototypeFormatting.euro(forecast.netMovementCents))
                         .font(.title2.bold())
                         .foregroundStyle(
@@ -334,7 +336,7 @@ private struct CashFlowChartCard: View {
                             }
                         }
                     }
-                    .chartXSelection(value: $selection)
+                    .interactiveChartXSelection($selection)
                     .frame(height: 240)
                     .padding(.top, 10)
                     .accessibilityLabel("Expected money in and money out")

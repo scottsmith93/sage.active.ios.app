@@ -42,7 +42,6 @@ struct SalesView: View {
     @State private var selectedFilter = "All"
     @State private var sort: SalesSort = .newest
     @State private var searchText = ""
-    @State private var hasScrolled = false
     @State private var showsInvoiceCreation: Bool
 
     init(store: PrototypeStore) {
@@ -61,7 +60,7 @@ struct SalesView: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: SageActiveTheme.controlSpacing) {
                 Picker("Sales document type", selection: $documentType) {
                     ForEach(SalesDocumentType.allCases) { type in
                         Text(type.rawValue).tag(type)
@@ -78,11 +77,11 @@ struct SalesView: View {
                 documentList
                     .padding(.horizontal)
             }
-            .padding(.vertical, 12)
+            .padding(.vertical, SageActiveTheme.controlSpacing)
         }
         .background(SageActiveTheme.pageBackground)
         .navigationTitle("Sales")
-        .navigationSubtitle(hasScrolled ? documentType.rawValue : "")
+        .navigationSubtitle(documentType.rawValue)
         .navigationBarTitleDisplayMode(.large)
         .searchable(
             text: $searchText,
@@ -94,10 +93,13 @@ struct SalesView: View {
                 Button {
                     showsInvoiceCreation = true
                 } label: {
-                    Label("New", systemImage: "plus")
+                    Image(systemName: "plus")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.black)
+                        .frame(width: 44, height: 44)
+                        .background(SageActiveTheme.brand, in: Circle())
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(SageActiveTheme.brand)
+                .buttonStyle(.plain)
                 .accessibilityLabel("Create a new sales document")
             }
         }
@@ -116,11 +118,6 @@ struct SalesView: View {
             selectedFilter = "All"
             searchText = ""
         }
-        .onScrollGeometryChange(for: Bool.self) { geometry in
-            geometry.contentOffset.y > 54
-        } action: { _, newValue in
-            hasScrolled = newValue
-        }
         .fullScreenCover(isPresented: $showsInvoiceCreation) {
             CreateSalesInvoiceView()
         }
@@ -132,31 +129,13 @@ struct SalesView: View {
                 Color.clear.frame(width: 8, height: 1)
                 ForEach(filters) { filter in
                     let isSelected = selectedFilter == filter.name
-                    Button {
+                    SelectionPill(
+                        title: filter.name,
+                        count: filter.count,
+                        isSelected: isSelected
+                    ) {
                         selectedFilter = filter.name
-                    } label: {
-                        HStack(spacing: 2) {
-                            Text(filter.name)
-                                .fontWeight(.medium)
-                                .foregroundStyle(isSelected ? SageActiveTheme.brand : .primary)
-                            Text("(\(filter.count))")
-                                .fontWeight(.regular)
-                                .foregroundStyle(isSelected ? SageActiveTheme.brand : .secondary)
-                        }
-                        .font(.subheadline)
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 8)
-                        .background(
-                            isSelected ? SageActiveTheme.brand.opacity(0.12) : Color(uiColor: .tertiarySystemFill),
-                            in: Capsule()
-                        )
-                        .overlay {
-                            Capsule()
-                                .stroke(isSelected ? SageActiveTheme.brand : .clear, lineWidth: 1.5)
-                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
                 Color.clear.frame(width: 8, height: 1)
             }
@@ -178,7 +157,12 @@ struct SalesView: View {
             } label: {
                 Label(sort.rawValue, systemImage: "arrow.up.arrow.down")
                     .font(.footnote.weight(.medium))
+                    .foregroundStyle(SageActiveTheme.primaryText)
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 8)
+                    .background(SageActiveTheme.cardBackground, in: Capsule())
             }
+            .tint(SageActiveTheme.primaryText)
         }
     }
 

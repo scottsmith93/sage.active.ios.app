@@ -43,18 +43,28 @@ struct BankBadge: View {
 }
 
 enum ChartColour: String, CaseIterable, Identifiable {
-    case blue, green, orange, purple, pink, teal
+    case primary, secondary, tertiary, information, positive, caution
 
     var id: Self { self }
-    var name: String { rawValue.capitalized }
+    var name: String {
+        switch self {
+        case .primary: "Primary"
+        case .secondary: "Secondary"
+        case .tertiary: "Tertiary"
+        case .information: "Information"
+        case .positive: "Positive"
+        case .caution: "Caution"
+        }
+    }
+
     var colour: Color {
         switch self {
-        case .blue: .blue
-        case .green: .green
-        case .orange: .orange
-        case .purple: .purple
-        case .pink: .pink
-        case .teal: .teal
+        case .primary: SageActiveTheme.brand
+        case .secondary: SageActiveTheme.secondaryVisual
+        case .tertiary: SageActiveTheme.tertiaryVisual
+        case .information: SageActiveTheme.informationVisual
+        case .positive: SageActiveTheme.positiveVisual
+        case .caution: SageActiveTheme.warningVisual
         }
     }
 }
@@ -79,7 +89,7 @@ struct ChartColourPicker: View {
                                 if selection == option {
                                     Image(systemName: "checkmark")
                                         .font(.caption.bold())
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(SageActiveTheme.primaryText)
                                 }
                             }
                     }
@@ -90,5 +100,41 @@ struct ChartColourPicker: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// A shared pill for time periods, document statuses and future quick-filter controls.
+struct SelectionPill: View {
+    let title: String
+    var count: Int?
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 3) {
+                Text(title)
+                    .fontWeight(.medium)
+                if let count {
+                    Text("(\(count))")
+                        .fontWeight(.regular)
+                }
+            }
+            .font(.subheadline)
+            .foregroundStyle(isSelected ? SageActiveTheme.selectedPillText : SageActiveTheme.primaryText)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 8)
+            .background(
+                isSelected ? SageActiveTheme.selectedPillBackground : SageActiveTheme.pillBackground,
+                in: Capsule()
+            )
+            .overlay {
+                Capsule()
+                    .stroke(isSelected ? SageActiveTheme.selectedPillStroke : .clear, lineWidth: 1.5)
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

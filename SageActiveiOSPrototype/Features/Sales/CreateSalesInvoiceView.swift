@@ -155,6 +155,7 @@ struct CreateSalesInvoiceView: View {
                     Button("Cancel") {
                         showsDiscardAlert = true
                     }
+                    .foregroundStyle(SageActiveTheme.primaryText)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -167,8 +168,8 @@ struct CreateSalesInvoiceView: View {
                     ) {
                         showsCreatedConfirmation = true
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
+                    .padding(.horizontal, 4)
+                    .padding(.bottom, 4)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -507,6 +508,7 @@ private struct InvoiceSummaryFooter: View {
 
             Button(action: onCreate) {
                 Text("Create")
+                    .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
             }
                 .buttonStyle(.borderedProminent)
@@ -514,9 +516,9 @@ private struct InvoiceSummaryFooter: View {
                 .controlSize(.large)
         }
         .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(.regularMaterial, in: ContainerRelativeShape())
         .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            ContainerRelativeShape()
                 .stroke(.white.opacity(0.28), lineWidth: 0.5)
         }
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
@@ -581,6 +583,7 @@ private struct CustomerSelectionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .foregroundStyle(SageActiveTheme.primaryText)
                 }
             }
         }
@@ -626,6 +629,7 @@ private struct ProductSelectionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .foregroundStyle(SageActiveTheme.primaryText)
                 }
             }
         }
@@ -768,6 +772,7 @@ private struct ProductDetailsSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: onClose) {
                         Image(systemName: "xmark")
+                            .foregroundStyle(SageActiveTheme.primaryText)
                     }
                     .accessibilityLabel("Close")
                 }
@@ -848,6 +853,7 @@ private struct InvoiceDateSelectionSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
+                            .foregroundStyle(SageActiveTheme.primaryText)
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { onSelect(selection) }
@@ -892,6 +898,7 @@ private struct DocumentPrefixSelectionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .foregroundStyle(SageActiveTheme.primaryText)
                 }
             }
         }

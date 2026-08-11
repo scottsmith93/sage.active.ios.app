@@ -13,8 +13,8 @@ struct HomeView: View {
     @State private var mode: HomeMode
     @State private var showsDisplaySettings = false
     @AppStorage("includeIvaInAnalytics") private var includeIva = true
-    @AppStorage("cashInChartColour") private var cashInColourRaw = ChartColour.green.rawValue
-    @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.orange.rawValue
+    @AppStorage("cashInChartColour") private var cashInColourRaw = ChartColour.positive.rawValue
+    @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.caution.rawValue
 
     init(store: PrototypeStore, initialMode: HomeMode = .overview) {
         self.store = store
@@ -39,6 +39,7 @@ struct HomeView: View {
         }
         .background(SageActiveTheme.pageBackground)
         .navigationTitle(store.dataset?.business.displayName ?? "Home")
+        .navigationSubtitle("Updated just now")
         .navigationBarTitleDisplayMode(.large)
         .refreshable { await store.refresh() }
     }
@@ -58,6 +59,7 @@ struct HomeView: View {
                     showsDisplaySettings = true
                 } label: {
                     Image(systemName: "gearshape")
+                        .foregroundStyle(SageActiveTheme.primaryText)
                         .frame(width: 32, height: 32)
                         .background(.quaternary, in: Circle())
                 }
@@ -82,23 +84,20 @@ struct HomeView: View {
                 }
             }
 
-            Text("Updated just now")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
         .padding(.top, 4)
     }
 
     private var cashInColourBinding: Binding<ChartColour> {
         Binding(
-            get: { ChartColour(rawValue: cashInColourRaw) ?? .green },
+            get: { ChartColour(rawValue: cashInColourRaw) ?? .positive },
             set: { cashInColourRaw = $0.rawValue }
         )
     }
 
     private var cashOutColourBinding: Binding<ChartColour> {
         Binding(
-            get: { ChartColour(rawValue: cashOutColourRaw) ?? .orange },
+            get: { ChartColour(rawValue: cashOutColourRaw) ?? .caution },
             set: { cashOutColourRaw = $0.rawValue }
         )
     }

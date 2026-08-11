@@ -30,8 +30,8 @@ struct InsightsView: View {
     @State private var rankingMetric: RankingMetric = .revenue
     @State private var selectedRevenueLabel: String?
     @State private var selectedPurchaseLabel: String?
-    @AppStorage("cashInChartColour") private var cashInColourRaw = ChartColour.green.rawValue
-    @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.orange.rawValue
+    @AppStorage("cashInChartColour") private var cashInColourRaw = ChartColour.positive.rawValue
+    @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.caution.rawValue
 
     var body: some View {
         VStack(spacing: 16) {
@@ -78,12 +78,12 @@ struct InsightsView: View {
                             HStack(spacing: 8) {
                                 Color.clear.frame(width: 8, height: 1)
                                 ForEach(availableMonths, id: \.period) { period in
-                                    Button(monthLabel(period.period)) {
+                                    SelectionPill(
+                                        title: monthLabel(period.period),
+                                        isSelected: selectedPeriod == period.period
+                                    ) {
                                         selectedPeriod = period.period
                                     }
-                                    .buttonStyle(.bordered)
-                                    .tint(selectedPeriod == period.period ? .accentColor : .secondary)
-                                    .accessibilityAddTraits(selectedPeriod == period.period ? .isSelected : [])
                                     .id(period.period)
                                 }
                                 Color.clear.frame(width: geometry.size.width * 0.42, height: 1)
@@ -99,11 +99,13 @@ struct InsightsView: View {
                     }
                 }
             } else {
-                HStack {
-                    Button("2025") { selectedPeriod = "2025" }
-                        .buttonStyle(.bordered)
-                    Button("2026") { selectedPeriod = "2026" }
-                        .buttonStyle(.borderedProminent)
+                HStack(spacing: 8) {
+                    SelectionPill(title: "2025", isSelected: selectedPeriod == "2025") {
+                        selectedPeriod = "2025"
+                    }
+                    SelectionPill(title: "2026", isSelected: selectedPeriod == "2026") {
+                        selectedPeriod = "2026"
+                    }
                 }
                 .padding(.horizontal, 16)
             }
@@ -119,11 +121,11 @@ struct InsightsView: View {
     }
 
     private var cashInColour: Color {
-        (ChartColour(rawValue: cashInColourRaw) ?? .green).colour
+        (ChartColour(rawValue: cashInColourRaw) ?? .positive).colour
     }
 
     private var cashOutColour: Color {
-        (ChartColour(rawValue: cashOutColourRaw) ?? .orange).colour
+        (ChartColour(rawValue: cashOutColourRaw) ?? .caution).colour
     }
 
     private var availableMonths: [PerformancePeriod] {
@@ -268,6 +270,7 @@ private struct PerformanceChartCard: View {
                             showsRevenueExplanation = true
                         } label: {
                             Image(systemName: "info.circle")
+                                .foregroundStyle(SageActiveTheme.primaryText)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("About sales revenue")
@@ -328,7 +331,7 @@ private struct PerformanceChartCard: View {
                         }
                     }
                 }
-                .chartXSelection(value: $selection)
+                .interactiveChartXSelection($selection)
                 .frame(height: 220)
                 .padding(.top, 10)
                 .accessibilityLabel(title + " comparison chart")
@@ -368,6 +371,16 @@ private struct ProductRankingCard: View {
                 .pickerStyle(.segmented)
 
                 if let rankings = snapshot?.productsAndServices {
+                    let concentration = metric == .revenue
+                        ? rankings.topFiveRevenueConcentrationBasisPoints
+                        : rankings.topFiveQuantityConcentrationBasisPoints
+
+                    RankingPieChart(
+                        slices: productSlices(rankings),
+                        concentrationBasisPoints: concentration,
+                        centreLabel: "Top five"
+                    )
+
                     ForEach(Array(rankings.topFive.enumerated()), id: \.element.id) { index, item in
                         RankingRow(
                             rank: index + 1,
@@ -382,9 +395,6 @@ private struct ProductRankingCard: View {
                         value: metric == .revenue ? revenueValue(rankings.allOther.revenueNetCents) : "\(rankings.allOther.quantity)"
                     )
 
-                    let concentration = metric == .revenue
-                        ? rankings.topFiveRevenueConcentrationBasisPoints
-                        : rankings.topFiveQuantityConcentrationBasisPoints
                     Text("Your top five products and services accounted for \(concentration / 100)% of \(metric == .revenue ? "sales revenue" : "units sold") in this period.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -403,6 +413,23 @@ private struct ProductRankingCard: View {
         let cents = includeIva ? Int((Double(netCents) * 1.21).rounded()) : netCents
         return PrototypeFormatting.euro(cents)
     }
+
+    private func productSlices(_ rankings: ProductRankings) -> [RankingSlice] {
+        let topFive = rankings.topFive.map { item in
+            RankingSlice(
+                id: item.id,
+                name: store.catalogName(item.catalogItemId),
+                value: metric == .revenue ? item.revenueNetCents : item.quantity
+            )
+        }
+        return topFive + [
+            RankingSlice(
+                id: "all-other-products",
+                name: "Everything else",
+                value: metric == .revenue ? rankings.allOther.revenueNetCents : rankings.allOther.quantity
+            )
+        ]
+    }
 }
 
 private struct CustomerRankingCard: View {
@@ -417,6 +444,12 @@ private struct CustomerRankingCard: View {
                     .font(.headline)
 
                 if let rankings = snapshot?.customers {
+                    RankingPieChart(
+                        slices: customerSlices(rankings),
+                        concentrationBasisPoints: rankings.topFiveRevenueConcentrationBasisPoints,
+                        centreLabel: "Top five"
+                    )
+
                     ForEach(Array(rankings.topFive.enumerated()), id: \.element.id) { index, item in
                         RankingRow(
                             rank: index + 1,
@@ -448,6 +481,64 @@ private struct CustomerRankingCard: View {
     private func revenueValue(_ netCents: Int) -> String {
         let cents = includeIva ? Int((Double(netCents) * 1.21).rounded()) : netCents
         return PrototypeFormatting.euro(cents)
+    }
+
+    private func customerSlices(_ rankings: CustomerRankings) -> [RankingSlice] {
+        let topFive = rankings.topFive.map { item in
+            RankingSlice(
+                id: item.id,
+                name: store.customerName(item.customerId),
+                value: item.revenueNetCents
+            )
+        }
+        return topFive + [
+            RankingSlice(
+                id: "all-other-customers",
+                name: "Everything else",
+                value: rankings.allOther.revenueNetCents
+            )
+        ]
+    }
+}
+
+private struct RankingSlice: Identifiable {
+    let id: String
+    let name: String
+    let value: Int
+}
+
+private struct RankingPieChart: View {
+    let slices: [RankingSlice]
+    let concentrationBasisPoints: Int
+    let centreLabel: String
+
+    var body: some View {
+        ZStack {
+            Chart {
+                ForEach(Array(slices.enumerated()), id: \.element.id) { index, slice in
+                    SectorMark(
+                        angle: .value("Value", slice.value),
+                        innerRadius: .ratio(0.58),
+                        angularInset: 1.5
+                    )
+                    .cornerRadius(3)
+                    .foregroundStyle(
+                        SageActiveTheme.chartPalette100[index % SageActiveTheme.chartPalette100.count]
+                    )
+                }
+            }
+            .chartLegend(.hidden)
+
+            VStack(spacing: 1) {
+                Text("\(concentrationBasisPoints / 100)%")
+                    .font(.title3.bold())
+                Text(centreLabel)
+                    .font(.caption)
+                    .foregroundStyle(SageActiveTheme.supportingText)
+            }
+        }
+        .frame(height: 180)
+        .accessibilityHidden(true)
     }
 }
 

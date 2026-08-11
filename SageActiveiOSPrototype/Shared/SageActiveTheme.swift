@@ -14,13 +14,21 @@ enum SageActiveTheme {
     static let brand = Theme.GRColorPalette.primaryAccent100.color
     static let onBrand = Theme.GRColorPalette.onPrimary.color
 
+    static let pillBackground = Theme.GRColorPalette.secondaryAccent10.color
+    static let selectedPillBackground = Theme.GRColorPalette.primaryAccent10.color
+    static let selectedPillText = Theme.GRColorPalette.primaryAccent100.color
+    static let selectedPillStroke = Theme.GRColorPalette.primaryAccent100.color
+
     static let positiveText = Theme.GRColorPalette.positiveGreenText.color
     static let positiveVisual = Theme.GRColorPalette.positiveGreen100.color
     static let negativeText = Theme.GRColorPalette.errorRedText.color
     static let negativeVisual = Theme.GRColorPalette.errorRed100.color
     static let warningText = Theme.GRColorPalette.cautionOrangeText.color
+    static let warningVisual = Theme.GRColorPalette.cautionOrange100.color
     static let informationText = Theme.GRColorPalette.infoBlueText.color
     static let informationVisual = Theme.GRColorPalette.infoBlue100.color
+    static let secondaryVisual = Theme.GRColorPalette.secondaryAccent100.color
+    static let tertiaryVisual = Theme.GRColorPalette.tertiaryAccent100.color
     static let disabled = Theme.GRColorPalette.disabled.color
     static let shadow = Theme.GRColorPalette.shadow.color
 
@@ -29,4 +37,15 @@ enum SageActiveTheme {
     static let cardCornerRadius: CGFloat = 24
     static let pageSpacing: CGFloat = 16
     static let relatedSpacing: CGFloat = 4
+    static let controlSpacing: CGFloat = 12
+
+    /// Six Graphite 100-strength colours used for data visualisation.
+    static let chartPalette100: [Color] = [
+        brand,
+        secondaryVisual,
+        tertiaryVisual,
+        informationVisual,
+        positiveVisual,
+        warningVisual
+    ]
 }

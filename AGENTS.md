@@ -27,6 +27,8 @@ The project owner is an experienced product designer learning native development
 - Keep Invoice, Order and Quote lists on the shared Sales page template and reusable document card unless a specific exception is requested.
 - Use a black page and dark-grey cards in Dark Mode; use a grey page and white cards in Light Mode.
 - Use the Graphite primary-accent token for primary calls to action, selected Sales filters and the active tab.
+- Reserve brand tint and prominent button styling for core workflow actions that help users achieve an objective, such as creating or adding a sales document. Use neutral `onSurface` styling for settings, sorting, information, dismissal and other utility actions.
+- Use the shared `SelectionPill` treatment for period selectors, status filters and future pill controls so their Graphite token roles stay consistent.
 - Keep Sales / money-in and Purchases / money-out colour choices in Dashboard settings and apply them to both Insights and Bank Balance charts.
 - Keep invoice date grouping in the Spanish scenario time zone.
 - Keep `SalesLineItemCard` reusable across invoice, order and quote creation journeys.
