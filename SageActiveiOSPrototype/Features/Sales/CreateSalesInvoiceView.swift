@@ -103,48 +103,41 @@ struct CreateSalesInvoiceView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 16) {
                     requiredInformationNote
 
-                    VStack(spacing: 14) {
-                        InvoiceSelectionField(
-                            label: "Customer",
-                            value: customer?.name ?? "Select customer",
-                            required: true,
-                            isPlaceholder: customer == nil
-                        ) {
+                    InvoiceCustomerInformationCard(
+                        customer: customer,
+                        onSelect: {
                             activeSheet = .customers
+                        },
+                        onClear: {
+                            customer = nil
+                            lineItems = []
                         }
+                    )
 
-                        InvoiceSelectionField(
-                            label: "Invoice date",
-                            value: formatted(invoiceDate),
-                            required: true
-                        ) {
+                    InvoiceDateGroup(
+                        invoiceDate: formatted(invoiceDate),
+                        fulfilmentDate: fulfilmentDate.map(formatted),
+                        onSelectInvoiceDate: {
                             activeSheet = .invoiceDate
-                        }
-
-                        InvoiceSelectionField(
-                            label: "Fulfilment date",
-                            value: fulfilmentDate.map(formatted) ?? "Select date",
-                            isPlaceholder: fulfilmentDate == nil
-                        ) {
+                        },
+                        onSelectFulfilmentDate: {
                             activeSheet = .fulfilmentDate
                         }
+                    )
 
-                        InvoiceSelectionField(
-                            label: "Document prefix",
-                            value: documentPrefix
-                        ) {
+                    InvoicePrefixField(value: documentPrefix) {
                             activeSheet = .prefixes
-                        }
                     }
 
                     if customer != nil {
                         productsSection
                     }
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.top, 22)
                 .padding(.bottom, canCreate ? 150 : 24)
             }
             .background(SageActiveTheme.pageBackground)
@@ -152,10 +145,12 @@ struct CreateSalesInvoiceView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    SageCarbonToolbarButton(
+                        icon: .close,
+                        accessibilityLabel: "Cancel"
+                    ) {
                         showsDiscardAlert = true
                     }
-                    .foregroundStyle(SageActiveTheme.primaryText)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -168,8 +163,8 @@ struct CreateSalesInvoiceView: View {
                     ) {
                         showsCreatedConfirmation = true
                     }
-                    .padding(.horizontal, 4)
-                    .padding(.bottom, 4)
+                    .padding(4)
+                    .ignoresSafeArea(.container, edges: .bottom)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -198,39 +193,49 @@ struct CreateSalesInvoiceView: View {
         HStack(spacing: 3) {
             Text("*")
                 .foregroundStyle(SageActiveTheme.negativeVisual)
-            Text("Indicates required information.")
-                .foregroundStyle(.primary)
+            Text("indicates required information.")
+                .foregroundStyle(SageActiveTheme.supportingText)
         }
-        .font(.footnote)
+        .font(.footnote.weight(.medium))
         .accessibilityElement(children: .combine)
     }
 
     private var productsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Products (\(lineItems.count))")
-                .font(.title3.bold())
-            Text("Products selected for the invoice.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                SageCarbonIconView(.jobSeeked, pointSize: 13, color: SageActiveTheme.supportingText)
+                    .frame(width: 14, height: 14)
+                Text("Products (\(lineItems.count))")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(SageActiveTheme.primaryText)
+            }
 
-            if lineItems.isEmpty {
-                AddProductsButton {
-                    activeSheet = .products
-                }
-            } else {
-                ForEach(lineItems) { lineItem in
+            VStack(spacing: 0) {
+                ForEach(Array(lineItems.enumerated()), id: \.element.id) { index, lineItem in
                     Button {
                         activeSheet = .productDetails(lineItem.product, lineItem)
                     } label: {
                         SalesLineItemCard(lineItem: lineItem)
                     }
                     .buttonStyle(.plain)
+
+                    if index < lineItems.count - 1 {
+                        Divider()
+                            .padding(.horizontal, 16)
+                    }
                 }
 
-                AddProductsButton(title: "Add another product") {
+                if !lineItems.isEmpty {
+                    Divider()
+                        .padding(.horizontal, 16)
+                }
+
+                AddProductsButton(title: "Add product") {
                     activeSheet = .products
                 }
             }
+            .background(SageActiveTheme.cardBackground)
+            .clipShape(.rect(cornerRadius: 14, style: .continuous))
         }
     }
 
@@ -292,6 +297,12 @@ struct CreateSalesInvoiceView: View {
                 onAddAnother: { lineItem in
                     save(lineItem)
                     transition(to: .products)
+                },
+                onDelete: {
+                    if let existingLineItem {
+                        lineItems.removeAll { $0.id == existingLineItem.id }
+                    }
+                    activeSheet = nil
                 }
             )
         }
@@ -339,74 +350,230 @@ struct CreateSalesInvoiceView: View {
                 .day()
                 .month(.abbreviated)
                 .year()
-                .locale(PrototypeFormatting.spanishLocale)
+                .locale(PrototypeFormatting.englishContentLocale)
         )
     }
 }
 
-private struct RequiredLabel: View {
-    let text: String
-    var required = false
+private struct InvoiceCustomerInformationCard: View {
+    let customer: InvoiceCustomer?
+    let onSelect: () -> Void
+    let onClear: () -> Void
 
     var body: some View {
-        HStack(spacing: 2) {
-            Text(text)
-            if required {
-                Text("*")
-                    .foregroundStyle(SageActiveTheme.negativeVisual)
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Button(action: onSelect) {
+                    HStack(spacing: 16) {
+                        SageCarbonIconView(
+                            .people,
+                            pointSize: 20,
+                            color: customer == nil ? SageActiveTheme.brand : SageActiveTheme.primaryText
+                        )
+                        .frame(width: 20, height: 20)
+
+                        VStack(alignment: .leading, spacing: customer == nil ? 0 : 2) {
+                            SageActiveInputLabel(label: "Customer", required: true)
+                                .font(customer == nil ? .body : .footnote)
+                                .foregroundStyle(customer == nil ? SageActiveTheme.brand : SageActiveTheme.supportingText)
+
+                            if let customer {
+                                Text(customer.name)
+                                    .font(.headline)
+                                    .foregroundStyle(SageActiveTheme.primaryText)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        SageCarbonIconView(.chevronRightThick, pointSize: 20, color: SageActiveTheme.supportingText)
+                            .frame(width: 20, height: 20)
+                    }
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Customer, required")
+                .accessibilityValue(customer?.name ?? "Not selected")
+                .accessibilityHint("Opens the customer list")
+
+                if customer != nil {
+                    Button(action: onClear) {
+                        SageCarbonIconView(.crossCircle, pointSize: 20, color: SageActiveTheme.supportingText)
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear customer")
+                }
+            }
+            .padding(.horizontal, 16)
+            .frame(minHeight: 64)
+
+            if let customer {
+                Divider()
+                    .padding(.horizontal, 16)
+
+                InvoiceCustomerDetailRow(label: "Contact details", value: customer.contactName)
+
+                Divider()
+                    .padding(.horizontal, 16)
+
+                InvoiceCustomerDetailRow(label: "Billing address", value: customer.address)
             }
         }
-        .foregroundStyle(.primary)
+        .background(SageActiveTheme.cardBackground)
+        .clipShape(.rect(cornerRadius: 14, style: .continuous))
     }
 }
 
-private struct InvoiceSelectionField: View {
+private struct InvoiceCustomerDetailRow: View {
     let label: String
     let value: String
-    var required = false
-    var isPlaceholder = false
-    let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            RequiredLabel(text: label, required: required)
-                .font(.subheadline.weight(.medium))
-
-            Button(action: action) {
-                HStack {
-                    Text(value)
-                        .foregroundStyle(isPlaceholder ? .secondary : .primary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(14)
-                .background(SageActiveTheme.cardBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
-            .buttonStyle(.plain)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.footnote)
+                .foregroundStyle(SageActiveTheme.supportingText)
+            Text(value)
+                .font(.caption)
+                .foregroundStyle(SageActiveTheme.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
     }
 }
 
-private struct AddProductsButton: View {
-    var title = "Add products"
+private struct InvoiceDateGroup: View {
+    let invoiceDate: String
+    let fulfilmentDate: String?
+    let onSelectInvoiceDate: () -> Void
+    let onSelectFulfilmentDate: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            InvoiceDateRow(
+                label: "Invoice date",
+                value: invoiceDate,
+                required: true,
+                isPlaceholder: false,
+                action: onSelectInvoiceDate
+            )
+
+            Divider()
+                .padding(.horizontal, 16)
+
+            InvoiceDateRow(
+                label: "Fulfilment date",
+                value: fulfilmentDate ?? "Select date",
+                required: false,
+                isPlaceholder: fulfilmentDate == nil,
+                action: onSelectFulfilmentDate
+            )
+        }
+        .background(SageActiveTheme.cardBackground)
+        .clipShape(.rect(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct InvoiceDateRow: View {
+    let label: String
+    let value: String
+    let required: Bool
+    let isPlaceholder: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack {
-                Label(title, systemImage: "plus")
-                    .fontWeight(.medium)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+            HStack(spacing: 12) {
+                SageCarbonIconView(.calendar, pointSize: 20, color: SageActiveTheme.supportingText)
+                    .frame(width: 20, height: 20)
+
+                SageActiveInputLabel(label: label, required: required)
+                    .font(.body)
+                    .foregroundStyle(SageActiveTheme.primaryText)
+
+                Spacer(minLength: 8)
+
+                Text(value)
+                    .font(.body)
+                    .foregroundStyle(isPlaceholder ? SageActiveTheme.brand : SageActiveTheme.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(SageActiveTheme.pageBackground)
+                    .clipShape(.rect(cornerRadius: 8, style: .continuous))
             }
-            .foregroundStyle(SageActiveTheme.brand)
-            .padding(16)
-            .background(SageActiveTheme.cardBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.horizontal, 16)
+            .frame(minHeight: 54)
+            .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(required ? "\(label), required" : label)
+        .accessibilityValue(isPlaceholder ? "Not selected" : value)
+        .accessibilityHint("Opens the date picker")
+    }
+}
+
+private struct InvoicePrefixField: View {
+    let value: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Document prefix")
+                        .font(.footnote)
+                        .foregroundStyle(SageActiveTheme.supportingText)
+                    Text(value)
+                        .font(.body)
+                        .foregroundStyle(SageActiveTheme.primaryText)
+                }
+
+                Spacer(minLength: 8)
+
+                SageCarbonIconView(.chevronRightThick, pointSize: 20, color: SageActiveTheme.supportingText)
+                    .frame(width: 20, height: 20)
+            }
+            .padding(.horizontal, 16)
+            .frame(minHeight: 64)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .background(SageActiveTheme.cardBackground)
+        .clipShape(.rect(cornerRadius: 14, style: .continuous))
+        .accessibilityLabel("Document prefix")
+        .accessibilityValue(value)
+        .accessibilityHint("Opens document prefix options")
+    }
+}
+
+private struct AddProductsButton: View {
+    var title = "Add product"
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                SageCarbonIconView(.add, pointSize: 16, color: SageActiveTheme.brand)
+                    .frame(width: 20, height: 20)
+                Text(title)
+                    .font(.subheadline)
+                Spacer()
+                SageCarbonIconView(.chevronRightThick, pointSize: 20, color: SageActiveTheme.brand)
+                    .frame(width: 20, height: 20)
+            }
+            .foregroundStyle(SageActiveTheme.brand)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 52)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens the product list")
     }
 }
 
@@ -414,46 +581,58 @@ struct SalesLineItemCard: View {
     let lineItem: SalesInvoiceLineItem
 
     var body: some View {
-        PrototypeCard {
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text(lineItem.product.name)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(SageActiveTheme.primaryText)
+                        .lineLimit(2)
                     Text(lineItem.product.code)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if !lineItem.description.isEmpty {
-                        Text(lineItem.description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-                    Text("Unit price: \(PrototypeFormatting.euro(lineItem.unitPriceCents))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.caption2)
+                        .foregroundStyle(SageActiveTheme.supportingText)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Unit price: \(MoneyFormatting.euro(lineItem.unitPriceCents))")
+                        .font(.caption2)
                     Text("Quantity: \(lineItem.quantity)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.caption2)
                     if let discount = lineItem.discountPercent, discount > 0 {
                         Text("Discount: \(formattedDiscount(discount))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.caption2)
                     }
                 }
+                .foregroundStyle(SageActiveTheme.supportingText)
 
-                Spacer(minLength: 8)
-
-                HStack(spacing: 8) {
-                    Text(PrototypeFormatting.euro(lineItem.taxableAmountCents))
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                if !lineItem.description.isEmpty {
+                    Text(lineItem.description)
+                        .font(.caption2)
+                        .foregroundStyle(SageActiveTheme.supportingText)
+                        .lineLimit(2)
                 }
             }
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 8) {
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(MoneyFormatting.euro(lineItem.taxableAmountCents))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(SageActiveTheme.primaryText)
+                        .lineLimit(1)
+                    Text("+ 21% IVA")
+                        .font(.caption2)
+                        .foregroundStyle(SageActiveTheme.supportingText)
+                }
+
+                SageCarbonIconView(.chevronRightThick, pointSize: 20, color: SageActiveTheme.supportingText)
+                    .frame(width: 20, height: 20)
+            }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .contentShape(.rect)
         .accessibilityElement(children: .combine)
         .accessibilityHint("Edit this invoice line")
     }
@@ -475,35 +654,46 @@ private struct InvoiceSummaryFooter: View {
     let onCreate: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             Button {
                 withAnimation(.snappy) { isExpanded.toggle() }
             } label: {
                 HStack {
                     Text("Invoice summary")
-                        .font(.headline)
+                        .font(.caption)
                     Spacer()
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
-                        .font(.caption.weight(.semibold))
+                    SageCarbonIconView(
+                        isExpanded ? .chevronDown : .caretUp,
+                        pointSize: 14,
+                        color: SageActiveTheme.primaryText
+                    )
+                    .frame(width: 16, height: 16)
                 }
-                .foregroundStyle(.primary)
+                .foregroundStyle(SageActiveTheme.primaryText)
             }
             .buttonStyle(.plain)
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
 
             Divider()
+                .padding(.horizontal, 16)
 
             if isExpanded {
-                SummaryValueRow(label: "Taxable amount", value: PrototypeFormatting.euro(subtotalCents))
-                SummaryValueRow(label: "IVA (21%)", value: PrototypeFormatting.euro(ivaCents))
+                Text("Totals and tax breakdown")
+                    .font(.footnote.weight(.semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                SummaryValueRow(label: "Taxable amount", value: MoneyFormatting.euro(subtotalCents))
+                SummaryValueRow(label: "IVA (21%)", value: MoneyFormatting.euro(ivaCents))
             }
 
             HStack(alignment: .firstTextBaseline) {
                 Text("Total")
-                    .font(.headline)
+                    .font(.body)
                 Spacer()
-                Text(PrototypeFormatting.euro(totalCents))
-                    .font(.title2.bold())
-                    .foregroundStyle(.primary)
+                Text(MoneyFormatting.euro(totalCents))
+                    .font(.title.weight(.semibold))
+                    .foregroundStyle(SageActiveTheme.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
 
             Button(action: onCreate) {
@@ -514,10 +704,21 @@ private struct InvoiceSummaryFooter: View {
                 .tint(SageActiveTheme.brand)
                 .controlSize(.large)
         }
-        .padding(16)
-        .background(.regularMaterial, in: ContainerRelativeShape())
+        .padding(12)
+        .background(
+            .regularMaterial,
+            in: ConcentricRectangle(
+                uniformTopCorners: .fixed(14),
+                bottomLeadingCorner: .concentric,
+                bottomTrailingCorner: .concentric
+            )
+        )
         .overlay {
-            ContainerRelativeShape()
+            ConcentricRectangle(
+                uniformTopCorners: .fixed(14),
+                bottomLeadingCorner: .concentric,
+                bottomTrailingCorner: .concentric
+            )
                 .stroke(.white.opacity(0.28), lineWidth: 0.5)
         }
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
@@ -531,12 +732,12 @@ private struct SummaryValueRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(SageActiveTheme.supportingText)
             Spacer()
             Text(value)
-                .foregroundStyle(.primary)
+                .foregroundStyle(SageActiveTheme.primaryText)
         }
-        .font(.subheadline)
+        .font(.caption2)
     }
 }
 
@@ -581,8 +782,11 @@ private struct CustomerSelectionSheet: View {
             .searchable(text: $searchText, prompt: "Search customers")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(SageActiveTheme.primaryText)
+                    SageCarbonToolbarButton(
+                        icon: .close,
+                        accessibilityLabel: "Cancel",
+                        action: dismiss.callAsFunction
+                    )
                 }
             }
         }
@@ -627,8 +831,11 @@ private struct ProductSelectionSheet: View {
             .searchable(text: $searchText, prompt: "Search products")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(SageActiveTheme.primaryText)
+                    SageCarbonToolbarButton(
+                        icon: .close,
+                        accessibilityLabel: "Cancel",
+                        action: dismiss.callAsFunction
+                    )
                 }
             }
         }
@@ -637,29 +844,41 @@ private struct ProductSelectionSheet: View {
 }
 
 private struct ProductDetailsSheet: View {
+    private enum InputField: Hashable {
+        case unitPrice
+        case quantity
+        case discount
+        case description
+    }
+
     let product: InvoiceCatalogProduct
     let existingLineItem: SalesInvoiceLineItem?
     let onClose: () -> Void
     let onAdd: (SalesInvoiceLineItem) -> Void
     let onAddAnother: (SalesInvoiceLineItem) -> Void
+    let onDelete: () -> Void
 
     @State private var unitPriceText: String
     @State private var quantityText: String
     @State private var discountText: String
     @State private var descriptionText: String
+    @State private var touchedFields: Set<InputField> = []
+    @FocusState private var focusedField: InputField?
 
     init(
         product: InvoiceCatalogProduct,
         existingLineItem: SalesInvoiceLineItem?,
         onClose: @escaping () -> Void,
         onAdd: @escaping (SalesInvoiceLineItem) -> Void,
-        onAddAnother: @escaping (SalesInvoiceLineItem) -> Void
+        onAddAnother: @escaping (SalesInvoiceLineItem) -> Void,
+        onDelete: @escaping () -> Void
     ) {
         self.product = product
         self.existingLineItem = existingLineItem
         self.onClose = onClose
         self.onAdd = onAdd
         self.onAddAnother = onAddAnother
+        self.onDelete = onDelete
         _unitPriceText = State(initialValue: Self.editableMoney(existingLineItem?.unitPriceCents ?? product.defaultUnitPriceCents))
         _quantityText = State(initialValue: String(existingLineItem?.quantity ?? 1))
         _discountText = State(initialValue: existingLineItem?.discountPercent.map(Self.editableNumber) ?? "")
@@ -688,97 +907,230 @@ private struct ProductDetailsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Product information") {
-                    LabeledContent("Code", value: product.code)
-                    LabeledContent("Name", value: product.name)
-
-                    LabeledContent {
-                        HStack(spacing: 4) {
-                            TextField("0,00", text: $unitPriceText)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                            Text("€")
-                                .foregroundStyle(.secondary)
-                        }
-                    } label: {
-                        RequiredLabel(text: "Unit price", required: true)
+                Section {
+                    VStack(spacing: 0) {
+                        ProductReadOnlyRow(label: "Code", value: product.code)
+                        ProductRowDivider()
+                        ProductReadOnlyRow(label: "Name", value: product.name)
+                        ProductRowDivider()
+                        ProductEditableRow(
+                            label: "Quantity",
+                            text: $quantityText,
+                            field: .quantity,
+                            focus: $focusedField,
+                            required: true,
+                            keyboardType: .numberPad,
+                            submitLabel: .next,
+                            errorMessage: quantityError,
+                            onSubmit: { focusedField = .unitPrice }
+                        )
+                        ProductRowDivider()
+                        ProductEditableRow(
+                            label: "Unit price",
+                            text: $unitPriceText,
+                            field: .unitPrice,
+                            focus: $focusedField,
+                            required: true,
+                            keyboardType: .decimalPad,
+                            submitLabel: .next,
+                            suffix: "€",
+                            errorMessage: unitPriceError,
+                            onSubmit: { focusedField = .discount }
+                        )
+                        ProductRowDivider()
+                        ProductEditableRow(
+                            label: "Discount",
+                            text: $discountText,
+                            field: .discount,
+                            focus: $focusedField,
+                            keyboardType: .decimalPad,
+                            submitLabel: .next,
+                            suffix: "%",
+                            errorMessage: discountError,
+                            onSubmit: { focusedField = .description }
+                        )
+                        ProductRowDivider()
+                        ProductEditableRow(
+                            label: "Description",
+                            text: $descriptionText,
+                            field: .description,
+                            focus: $focusedField,
+                            submitLabel: .done,
+                            axis: .vertical,
+                            characterLimit: 250,
+                            onSubmit: { focusedField = nil }
+                        )
                     }
-
-                    LabeledContent {
-                        TextField("1", text: $quantityText)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                    } label: {
-                        RequiredLabel(text: "Quantity", required: true)
-                    }
-
-                    LabeledContent {
-                        HStack(spacing: 4) {
-                            TextField("Optional", text: $discountText)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                            Text("%")
-                                .foregroundStyle(.secondary)
-                        }
-                    } label: {
-                        Text("Discount")
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Description")
-                        TextEditor(text: $descriptionText)
-                            .frame(minHeight: 82)
-                    }
-
-                    LabeledContent("Taxable amount") {
-                        Text(PrototypeFormatting.euro(taxableAmountCents))
-                            .fontWeight(.semibold)
-                    }
+                    .background(SageActiveTheme.cardBackground)
+                    .clipShape(.rect(cornerRadius: 14, style: .continuous))
+                } header: {
+                    Text("Product information")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(SageActiveTheme.primaryText)
+                        .textCase(nil)
                 }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
 
                 Section {
-                    Button {
-                        if let lineItem { onAdd(lineItem) }
-                    } label: {
-                        Text("Add product")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(SageActiveTheme.brand)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
-                    .disabled(!isValid)
+                    VStack(spacing: 16) {
+                        ProductReadOnlyRow(label: "VAT rate", value: "21% · Standard rate")
+                            .background(SageActiveTheme.pageBackground)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(Color(.separator), lineWidth: 0.5)
+                            }
+                            .clipShape(.rect(cornerRadius: 10, style: .continuous))
 
-                    Button {
-                        if let lineItem { onAddAnother(lineItem) }
-                    } label: {
-                        Text("Add product and add another")
-                            .frame(maxWidth: .infinity)
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("Taxable amount")
+                                .font(.footnote)
+                                .foregroundStyle(SageActiveTheme.supportingText)
+                            Text(MoneyFormatting.euro(taxableAmountCents))
+                                .font(.headline)
+                                .foregroundStyle(SageActiveTheme.primaryText)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .accessibilityElement(children: .combine)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(SageActiveTheme.brand)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
-                    .disabled(!isValid)
+                } header: {
+                    Text("Accounting information")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(SageActiveTheme.primaryText)
+                        .textCase(nil)
                 }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+
+                Section {
+                    VStack(spacing: 24) {
+                        Button {
+                            if let lineItem { onAdd(lineItem) }
+                        } label: {
+                            Text(existingLineItem == nil ? "Add product" : "Update")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.capsule)
+                        .tint(SageActiveTheme.brand)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
+                        .disabled(!isValid)
+
+                        if existingLineItem == nil {
+                            Button {
+                                if let lineItem { onAddAnother(lineItem) }
+                            } label: {
+                                Text("Add product and add another")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(SageActiveTheme.brand)
+                            .font(.headline)
+                            .controlSize(.large)
+                            .frame(maxWidth: .infinity)
+                            .disabled(!isValid)
+                        } else {
+                            Button(role: .destructive, action: onDelete) {
+                                Text("Delete product")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.plain)
+                            .font(.headline)
+                            .controlSize(.large)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+                .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
             }
             .scrollContentBackground(.hidden)
             .background(SageActiveTheme.pageBackground)
-            .navigationTitle("Add product to invoice")
+            .navigationTitle("Product details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                            .foregroundStyle(SageActiveTheme.primaryText)
+                ToolbarItem(placement: .cancellationAction) {
+                    SageCarbonToolbarButton(
+                        icon: .close,
+                        accessibilityLabel: "Close",
+                        action: onClose
+                    )
+                }
+
+                ToolbarItemGroup(placement: .keyboard) {
+                    Button {
+                        moveFocus(backwards: true)
+                    } label: {
+                        Image(systemName: "chevron.up")
                     }
-                    .accessibilityLabel("Close")
+                    .disabled(previousField == nil)
+                    .accessibilityLabel("Previous field")
+
+                    Button {
+                        moveFocus(backwards: false)
+                    } label: {
+                        Image(systemName: "chevron.down")
+                    }
+                    .disabled(nextField == nil)
+                    .accessibilityLabel("Next field")
+
+                    Spacer()
+
+                    Button("Done") {
+                        focusedField = nil
+                    }
+                }
+            }
+            .onChange(of: focusedField) { previous, _ in
+                if let previous {
+                    touchedFields.insert(previous)
                 }
             }
         }
         .presentationDetents([.large])
         .interactiveDismissDisabled()
+    }
+
+    private var unitPriceError: String? {
+        guard touchedFields.contains(.unitPrice), unitPriceCents == nil || unitPriceCents == 0 else { return nil }
+        return "Enter a unit price greater than 0."
+    }
+
+    private var quantityError: String? {
+        guard touchedFields.contains(.quantity), quantity == nil else { return nil }
+        return "Enter a quantity of 1 or more."
+    }
+
+    private var discountError: String? {
+        guard touchedFields.contains(.discount), !discountText.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+        guard let discount, discount >= 0, discount <= 100 else {
+            return "Enter a discount between 0 and 100."
+        }
+        return nil
+    }
+
+    private var orderedFields: [InputField] {
+        [.quantity, .unitPrice, .discount, .description]
+    }
+
+    private var previousField: InputField? {
+        adjacentField(offset: -1)
+    }
+
+    private var nextField: InputField? {
+        adjacentField(offset: 1)
+    }
+
+    private func adjacentField(offset: Int) -> InputField? {
+        guard let focusedField, let index = orderedFields.firstIndex(of: focusedField) else { return nil }
+        let destination = index + offset
+        guard orderedFields.indices.contains(destination) else { return nil }
+        return orderedFields[destination]
+    }
+
+    private func moveFocus(backwards: Bool) {
+        focusedField = backwards ? previousField : nextField
     }
 
     private var lineItem: SalesInvoiceLineItem? {
@@ -794,7 +1146,7 @@ private struct ProductDetailsSheet: View {
     }
 
     private static func editableMoney(_ cents: Int) -> String {
-        String(format: "%.2f", Double(cents) / 100).replacingOccurrences(of: ".", with: ",")
+        MoneyFormatting.editableEuro(cents)
     }
 
     private static func editableNumber(_ value: Double) -> String {
@@ -816,6 +1168,102 @@ private struct ProductDetailsSheet: View {
             normalized = trimmed
         }
         return Double(normalized)
+    }
+}
+
+private struct ProductReadOnlyRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.footnote)
+                .foregroundStyle(SageActiveTheme.supportingText)
+            Text(value)
+                .font(.body)
+                .foregroundStyle(SageActiveTheme.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct ProductEditableRow<Field: Hashable>: View {
+    let label: String
+    @Binding var text: String
+    let field: Field
+    let focus: FocusState<Field?>.Binding
+    var required = false
+    var keyboardType: UIKeyboardType = .default
+    var submitLabel: SubmitLabel = .next
+    var suffix: String?
+    var axis: Axis = .horizontal
+    var characterLimit: Int?
+    var errorMessage: String?
+    var onSubmit: () -> Void = { }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            SageActiveInputLabel(label: label, required: required)
+                .font(.footnote)
+                .foregroundStyle(errorMessage == nil ? SageActiveTheme.supportingText : SageActiveTheme.negativeText)
+
+            HStack(alignment: axis == .vertical ? .top : .center, spacing: 8) {
+                TextField("", text: $text, axis: axis)
+                    .font(.body)
+                    .foregroundStyle(SageActiveTheme.primaryText)
+                    .focused(focus, equals: field)
+                    .keyboardType(keyboardType)
+                    .submitLabel(submitLabel)
+                    .lineLimit(axis == .vertical ? 2...4 : 1...1)
+                    .onSubmit(onSubmit)
+
+                if let suffix, !text.isEmpty {
+                    Text(suffix)
+                        .font(.body)
+                        .foregroundStyle(SageActiveTheme.primaryText)
+                        .accessibilityHidden(true)
+                }
+
+                if !text.isEmpty {
+                    Button {
+                        text = ""
+                        focus.wrappedValue = field
+                    } label: {
+                        SageCarbonIconView(.crossCircle, pointSize: 20, color: SageActiveTheme.supportingText)
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear \(label)")
+                }
+            }
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.caption2)
+                    .foregroundStyle(SageActiveTheme.negativeText)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .onChange(of: text) { _, newValue in
+            guard let characterLimit, newValue.count > characterLimit else { return }
+            text = String(newValue.prefix(characterLimit))
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(required ? "\(label), required" : label)
+    }
+}
+
+private struct ProductRowDivider: View {
+    var body: some View {
+        Divider()
+            .padding(.horizontal, 16)
     }
 }
 
@@ -851,8 +1299,11 @@ private struct InvoiceDateSelectionSheet: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { dismiss() }
-                            .foregroundStyle(SageActiveTheme.primaryText)
+                        SageCarbonToolbarButton(
+                            icon: .close,
+                            accessibilityLabel: "Cancel",
+                            action: dismiss.callAsFunction
+                        )
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { onSelect(selection) }
@@ -896,8 +1347,11 @@ private struct DocumentPrefixSelectionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(SageActiveTheme.primaryText)
+                    SageCarbonToolbarButton(
+                        icon: .close,
+                        accessibilityLabel: "Cancel",
+                        action: dismiss.callAsFunction
+                    )
                 }
             }
         }

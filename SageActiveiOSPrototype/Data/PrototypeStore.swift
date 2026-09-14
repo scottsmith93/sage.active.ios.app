@@ -15,31 +15,28 @@ struct OutstandingSummary {
 }
 
 enum ForecastRange: String, CaseIterable, Identifiable {
-    case week = "W"
-    case month = "M"
-    case threeMonths = "3M"
-    case sixMonths = "6M"
-    case year = "Y"
+    case week = "7d"
+    case month = "30d"
+    case twoMonths = "60d"
+    case threeMonths = "90d"
 
     var id: Self { self }
 
     var accessibilityLabel: String {
         switch self {
-        case .week: "One week"
-        case .month: "One month"
-        case .threeMonths: "Three months"
-        case .sixMonths: "Six months"
-        case .year: "One year"
+        case .week: "Seven days"
+        case .month: "Thirty days"
+        case .twoMonths: "Sixty days"
+        case .threeMonths: "Ninety days"
         }
     }
 
-    var dateComponents: DateComponents {
+    var dayCount: Int {
         switch self {
-        case .week: DateComponents(day: 7)
-        case .month: DateComponents(month: 1)
-        case .threeMonths: DateComponents(month: 3)
-        case .sixMonths: DateComponents(month: 6)
-        case .year: DateComponents(year: 1)
+        case .week: 7
+        case .month: 30
+        case .twoMonths: 60
+        case .threeMonths: 90
         }
     }
 }
@@ -54,12 +51,15 @@ struct ForecastEvent: Identifiable {
 struct ProjectionPoint: Identifiable {
     var id: Date { date }
     let date: Date
+    let periodStart: Date
+    let periodEnd: Date
     let balanceCents: Int
 }
 
 struct CashFlowBucket: Identifiable {
     var id: Date { date }
     let date: Date
+    let endDate: Date
     let moneyInCents: Int
     let moneyOutCents: Int
     var netCents: Int { moneyInCents - moneyOutCents }
@@ -203,30 +203,30 @@ final class PrototypeStore {
     ) -> ForecastResult {
         let calendar = DateParsing.calendar
         let start = calendar.startOfDay(for: referenceDate)
-        let end = calendar.date(byAdding: range.dateComponents, to: start) ?? start
+        let end = calendar.date(byAdding: .day, value: range.dayCount - 1, to: start) ?? start
         let events = forecastEvents(includedBankIDs: includedBankIDs)
-            .filter { $0.date > start && $0.date <= end }
+            .filter { $0.date >= start && $0.date <= end }
             .sorted { $0.date < $1.date }
 
         let startingBalance = currentBalanceCents ?? self.currentBalanceCents
-        var balance = startingBalance
-        var projection = [ProjectionPoint(date: start, balanceCents: balance)]
-        for event in events {
-            balance += event.moneyInCents - event.moneyOutCents
-            projection.append(ProjectionPoint(date: event.date, balanceCents: balance))
-        }
-        if projection.last?.date != end {
-            projection.append(ProjectionPoint(date: end, balanceCents: balance))
+        let projectedBalance = startingBalance + events.reduce(0) {
+            $0 + $1.moneyInCents - $1.moneyOutCents
         }
 
         return ForecastResult(
             startDate: start,
             endDate: end,
             currentBalanceCents: startingBalance,
-            projectedBalanceCents: balance,
+            projectedBalanceCents: projectedBalance,
             totalMoneyInCents: events.reduce(0) { $0 + $1.moneyInCents },
             totalMoneyOutCents: events.reduce(0) { $0 + $1.moneyOutCents },
-            projection: projection,
+            projection: projectionPoints(
+                for: events,
+                range: range,
+                start: start,
+                end: end,
+                startingBalanceCents: startingBalance
+            ),
             cashFlow: buckets(for: events, range: range, start: start, end: end)
         )
     }
@@ -248,28 +248,68 @@ final class PrototypeStore {
 
     private func buckets(for events: [ForecastEvent], range: ForecastRange, start: Date, end: Date) -> [CashFlowBucket] {
         let calendar = DateParsing.calendar
-        let component: Calendar.Component = switch range {
-        case .week: .day
-        case .month: .weekOfYear
-        case .threeMonths, .sixMonths, .year: .month
-        }
+        let periods: [(start: Date, end: Date)]
 
-        var grouped: [Date: (moneyIn: Int, moneyOut: Int)] = [:]
-        for event in events {
-            let bucketDate: Date
-            if component == .day {
-                bucketDate = calendar.startOfDay(for: event.date)
-            } else if component == .weekOfYear {
-                bucketDate = calendar.dateInterval(of: .weekOfYear, for: event.date)?.start ?? event.date
-            } else {
-                bucketDate = calendar.dateInterval(of: .month, for: event.date)?.start ?? event.date
+        switch range {
+        case .week:
+            periods = stride(from: 0, to: range.dayCount, by: 1).compactMap { offset in
+                guard let date = calendar.date(byAdding: .day, value: offset, to: start) else { return nil }
+                return (date, date)
             }
-            let existing = grouped[bucketDate, default: (0, 0)]
-            grouped[bucketDate] = (existing.moneyIn + event.moneyInCents, existing.moneyOut + event.moneyOutCents)
+        case .month, .twoMonths:
+            periods = stride(from: 0, to: range.dayCount, by: 7).compactMap { offset in
+                guard let periodStart = calendar.date(byAdding: .day, value: offset, to: start),
+                      let proposedEnd = calendar.date(byAdding: .day, value: 6, to: periodStart)
+                else { return nil }
+                return (periodStart, min(proposedEnd, end))
+            }
+        case .threeMonths:
+            periods = (0..<3).compactMap { offset in
+                guard let periodStart = calendar.date(byAdding: .month, value: offset, to: start),
+                      let nextStart = calendar.date(byAdding: .month, value: 1, to: periodStart),
+                      let proposedEnd = calendar.date(byAdding: .day, value: -1, to: nextStart)
+                else { return nil }
+                return (periodStart, min(proposedEnd, end))
+            }
         }
 
-        return grouped.map {
-            CashFlowBucket(date: $0.key, moneyInCents: $0.value.moneyIn, moneyOutCents: $0.value.moneyOut)
-        }.sorted { $0.date < $1.date }
+        return periods.map { period in
+            let matchingEvents = events.filter { $0.date >= period.start && $0.date <= period.end }
+            return CashFlowBucket(
+                date: period.start,
+                endDate: period.end,
+                moneyInCents: matchingEvents.reduce(0) { $0 + $1.moneyInCents },
+                moneyOutCents: matchingEvents.reduce(0) { $0 + $1.moneyOutCents }
+            )
+        }
+    }
+
+    private func projectionPoints(
+        for events: [ForecastEvent],
+        range: ForecastRange,
+        start: Date,
+        end: Date,
+        startingBalanceCents: Int
+    ) -> [ProjectionPoint] {
+        let calendar = DateParsing.calendar
+        let periodLength = range == .week || range == .month ? 1 : 7
+        let periods = stride(from: 0, to: range.dayCount, by: periodLength).compactMap { offset -> (Date, Date)? in
+            guard let periodStart = calendar.date(byAdding: .day, value: offset, to: start),
+                  let proposedEnd = calendar.date(byAdding: .day, value: periodLength - 1, to: periodStart)
+            else { return nil }
+            return (periodStart, min(proposedEnd, end))
+        }
+
+        return periods.map { period in
+            let movement = events
+                .filter { $0.date <= period.1 }
+                .reduce(0) { $0 + $1.moneyInCents - $1.moneyOutCents }
+            return ProjectionPoint(
+                date: period.1,
+                periodStart: period.0,
+                periodEnd: period.1,
+                balanceCents: startingBalanceCents + movement
+            )
+        }
     }
 }

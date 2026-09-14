@@ -25,24 +25,8 @@ enum DateParsing {
 
 @MainActor
 enum PrototypeFormatting {
-    static let spanishLocale = Locale(identifier: "es_ES")
-
-    static func euro(_ cents: Int, compact: Bool = false) -> String {
-        let value = Double(cents) / 100
-        if compact {
-            return value.formatted(
-                .currency(code: "EUR")
-                    .locale(spanishLocale)
-                    .notation(.compactName)
-                    .precision(.fractionLength(0...1))
-            )
-        }
-        return value.formatted(
-            .currency(code: "EUR")
-                .locale(spanishLocale)
-                .precision(.fractionLength(2))
-        )
-    }
+    static let spanishLocale = MoneyFormatting.locale
+    static let englishContentLocale = Locale(identifier: "en_GB")
 
     static func percent(_ value: Double, signed: Bool = true) -> String {
         value.formatted(
@@ -55,6 +39,6 @@ enum PrototypeFormatting {
 
     static func day(_ value: String) -> String {
         guard let date = DateParsing.day.date(from: value) else { return value }
-        return date.formatted(.dateTime.day().month(.abbreviated).year().locale(spanishLocale))
+        return date.formatted(.dateTime.day().month(.abbreviated).year().locale(englishContentLocale))
     }
 }

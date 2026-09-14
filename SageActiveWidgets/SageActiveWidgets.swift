@@ -73,20 +73,12 @@ struct FinanceSnapshotWidgetView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                Text(Self.euro(cents))
+                Text(MoneyFormatting.euro(cents))
                     .font(.title3.bold())
                     .minimumScaleFactor(0.72)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-
-        private static func euro(_ cents: Int) -> String {
-            (Double(cents) / 100).formatted(
-                .currency(code: "EUR")
-                    .locale(Locale(identifier: "es_ES"))
-                    .precision(.fractionLength(0))
-            )
         }
     }
 }

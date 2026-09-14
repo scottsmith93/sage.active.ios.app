@@ -1,6 +1,6 @@
 import SwiftUI
 
-private enum SalesDocumentType: String, CaseIterable, Identifiable {
+enum SalesDocumentType: String, CaseIterable, Identifiable {
     case invoices = "Invoices"
     case orders = "Orders"
     case quotes = "Quotes"
@@ -38,25 +38,21 @@ private struct SalesDocument: Identifiable {
 struct SalesView: View {
     let store: PrototypeStore
 
-    @State private var documentType: SalesDocumentType
+    @Binding private var documentType: SalesDocumentType
     @State private var selectedFilter = "All"
     @State private var sort: SalesSort = .newest
     @State private var searchText = ""
-    @State private var hasScrolled = false
     @State private var showsInvoiceCreation: Bool
 
-    init(store: PrototypeStore) {
+    init(
+        store: PrototypeStore,
+        documentType: Binding<SalesDocumentType>
+    ) {
         self.store = store
-        let arguments = ProcessInfo.processInfo.arguments
-        let initialType: SalesDocumentType = if arguments.contains("-showOrders") {
-            .orders
-        } else if arguments.contains("-showQuotes") {
-            .quotes
-        } else {
-            .invoices
-        }
-        _documentType = State(initialValue: initialType)
-        _showsInvoiceCreation = State(initialValue: arguments.contains { $0.hasPrefix("-showCreateInvoice") })
+        _documentType = documentType
+        _showsInvoiceCreation = State(
+            initialValue: ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-showCreateInvoice") }
+        )
     }
 
     var body: some View {
@@ -68,6 +64,7 @@ struct SalesView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .frame(height: 36)
                 .padding(.horizontal)
 
                 filterStrip
@@ -82,6 +79,7 @@ struct SalesView: View {
         }
         .background(SageActiveTheme.pageBackground)
         .navigationTitle("Sales")
+        .navigationSubtitle(documentType.rawValue)
         .navigationBarTitleDisplayMode(.large)
         .searchable(
             text: $searchText,
@@ -89,29 +87,49 @@ struct SalesView: View {
             prompt: "Search \(documentType.rawValue.lowercased())"
         )
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                VStack(spacing: 0) {
-                    Text("Sales")
-                        .font(.headline)
-                    Text(documentType.rawValue)
-                        .font(.caption2)
-                        .foregroundStyle(SageActiveTheme.supportingText)
-                }
-                .opacity(hasScrolled ? 1 : 0)
-                .accessibilityHidden(!hasScrolled)
-                .animation(.easeInOut(duration: 0.18), value: hasScrolled)
-            }
-
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showsInvoiceCreation = true
-                } label: {
-                    Label("New", systemImage: "plus")
+                HStack(spacing: 12) {
+                    Button {
+                        // Speech-to-invoice will be connected in a future iteration.
+                    } label: {
+                        SageCarbonIconView(
+                            .microphone,
+                            pointSize: 20,
+                            color: SageActiveTheme.primaryText
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: 48, height: 48)
+                    .glassEffect(.regular.interactive(), in: Circle())
+                    .overlay {
+                        Circle()
+                            .stroke(SageActiveTheme.brandGradient, lineWidth: 1)
+                    }
+                    .accessibilityLabel("Speech to invoice")
+                    .accessibilityHint("Speech to invoice is not available in this prototype")
+
+                    Button {
+                        showsInvoiceCreation = true
+                    } label: {
+                        SageCarbonIconView(
+                            .plusLarge,
+                            pointSize: 20,
+                            color: SageActiveTheme.primaryActionForeground
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: 48, height: 48)
+                    .glassEffect(
+                        .regular.tint(SageActiveTheme.brand).interactive(),
+                        in: Circle()
+                    )
+                    .accessibilityLabel("Create a new sales document")
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(SageActiveTheme.brand)
-                .accessibilityLabel("Create a new sales document")
             }
+            // iOS 26 groups trailing toolbar content into a shared glass capsule by
+            // default. Keep the actions in the native toolbar, but make each
+            // circular control stand alone as designed.
+            .sharedBackgroundVisibility(.hidden)
         }
         .onAppear {
             let arguments = ProcessInfo.processInfo.arguments
@@ -128,11 +146,6 @@ struct SalesView: View {
             selectedFilter = "All"
             searchText = ""
         }
-        .onScrollGeometryChange(for: Bool.self) { geometry in
-            geometry.contentOffset.y > 54
-        } action: { _, newValue in
-            hasScrolled = newValue
-        }
         .fullScreenCover(isPresented: $showsInvoiceCreation) {
             CreateSalesInvoiceView()
         }
@@ -140,22 +153,23 @@ struct SalesView: View {
 
     private var filterStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                Color.clear.frame(width: 8, height: 1)
+            HStack(spacing: 4) {
                 ForEach(filters) { filter in
                     let isSelected = selectedFilter == filter.name
                     SelectionPill(
                         title: filter.name,
                         count: filter.count,
-                        isSelected: isSelected
+                        isSelected: isSelected,
+                        variant: .salesFilter
                     ) {
                         selectedFilter = filter.name
                     }
                 }
-                Color.clear.frame(width: 8, height: 1)
             }
-            .padding(.vertical, 3)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
+        .frame(height: 52)
     }
 
     private var sortControl: some View {
@@ -189,20 +203,22 @@ struct SalesView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 48)
         } else if sort.usesDateSections {
-            LazyVStack(alignment: .leading, spacing: 12) {
+            LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(dateSections, id: \.date) { section in
                     Text(section.date.formatted(Self.sectionDateFormat))
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .padding(.top, 4)
+                        .frame(height: 32, alignment: .bottomLeading)
 
-                    ForEach(section.documents) { document in
-                        SalesDocumentCard(document: document, referenceDate: store.referenceDate)
+                    LazyVStack(spacing: 8) {
+                        ForEach(section.documents) { document in
+                            SalesDocumentCard(document: document, referenceDate: store.referenceDate)
+                        }
                     }
                 }
             }
         } else {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 8) {
                 ForEach(visibleDocuments) { document in
                     SalesDocumentCard(document: document, referenceDate: store.referenceDate)
                 }
@@ -356,36 +372,76 @@ private struct SalesDocumentCard: View {
     let referenceDate: Date
 
     var body: some View {
-        PrototypeCard {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(document.customerName)
-                        .font(.subheadline.weight(.semibold))
-                    Text(document.number)
+        HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(document.customerName)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+
+                statusPill
+
+                // Keep the established due-date context available for documents that
+                // need it. It stays compact and allows the card to grow only when
+                // there is meaningful timing information to show.
+                if let timingLabel {
+                    Text(timingLabel)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if let timingLabel {
-                        Text(timingLabel)
-                            .font(.caption)
-                            .foregroundStyle(timingColour)
-                    }
-                }
-
-                Spacer(minLength: 8)
-
-                VStack(alignment: .trailing, spacing: 7) {
-                    Text(PrototypeFormatting.euro(document.totalCents))
-                        .font(.subheadline.weight(.semibold))
-                    Text(document.status)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(statusColour)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(statusColour.opacity(0.12), in: Capsule())
+                        .foregroundStyle(timingColour)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .trailing, spacing: 6) {
+                Text(MoneyFormatting.euro(document.totalCents))
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+
+                if document.status != "Draft" {
+                    Text(document.number)
+                        .font(.caption)
+                        .foregroundStyle(SageActiveTheme.supportingText)
+                        .lineLimit(1)
+                }
+            }
+            .fixedSize(horizontal: true, vertical: false)
+
+            SageCarbonIconView(
+                .chevronRightThick,
+                pointSize: 20,
+                color: SageActiveTheme.primaryText
+            )
+            .frame(width: 20, height: 20)
+            .accessibilityHidden(true)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
+        .background(
+            SageActiveTheme.cardBackground,
+            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityElement(children: .combine)
+        .accessibilityValue(
+            Text([document.status, timingLabel].compactMap { $0 }.joined(separator: ", "))
+        )
+    }
+
+    private var statusPill: some View {
+        Text(document.status)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundStyle(SageActiveTheme.primaryText)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .frame(minHeight: 24)
+            .background(statusPillFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(statusPillStroke, lineWidth: 1)
+            }
     }
 
     private var timingLabel: String? {
@@ -407,14 +463,27 @@ private struct SalesDocumentCard: View {
             : SageActiveTheme.supportingText
     }
 
-    private var statusColour: Color {
+    private var statusPillFill: Color {
         switch document.status {
-        case "Overdue", "Partially overdue", "Declined": SageActiveTheme.negativeText
-        case "Unposted": SageActiveTheme.warningText
-        case "Paid", "Closed": SageActiveTheme.positiveText
-        case "Awaiting payment", "Partially paid", "Pending": SageActiveTheme.informationText
-        case "Draft": .secondary
-        default: .secondary
+        case "Overdue", "Partially overdue", "Declined": SageActiveTheme.negativeBackground
+        case "Unposted": SageActiveTheme.warningBackground
+        case "Paid", "Closed": SageActiveTheme.positiveBackground
+        case "Awaiting payment", "Partially paid": SageActiveTheme.informationBackground
+        case "Pending": SageActiveTheme.selectedPillBackground
+        case "Draft": SageActiveTheme.pillBackground
+        default: SageActiveTheme.pillBackground
+        }
+    }
+
+    private var statusPillStroke: Color {
+        switch document.status {
+        case "Overdue", "Partially overdue", "Declined": SageActiveTheme.negativeVisual
+        case "Unposted": SageActiveTheme.warningVisual
+        case "Paid", "Closed": SageActiveTheme.positiveVisual
+        case "Awaiting payment", "Partially paid": SageActiveTheme.informationVisual
+        case "Pending": SageActiveTheme.selectedPillStroke
+        case "Draft": SageActiveTheme.unselectedPillStroke
+        default: SageActiveTheme.unselectedPillStroke
         }
     }
 }

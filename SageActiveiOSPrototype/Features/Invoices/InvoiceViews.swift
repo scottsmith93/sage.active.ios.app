@@ -20,6 +20,7 @@ struct InvoiceListView: View {
     let store: PrototypeStore
 
     @State private var urgency: InvoiceUrgency
+    @Environment(\.dismiss) private var dismiss
     @AppStorage("includeIvaInAnalytics") private var includeIva = true
 
     init(kind: InvoiceKind, initialUrgency: InvoiceUrgency, store: PrototypeStore) {
@@ -43,7 +44,7 @@ struct InvoiceListView: View {
                 HStack {
                     Text("\(visible.count) invoices")
                     Spacer()
-                    Text(PrototypeFormatting.euro(visible.reduce(0) { $0 + displayAmount($1) }))
+                    Text(MoneyFormatting.euro(visible.reduce(0) { $0 + displayAmount($1) }))
                         .fontWeight(.semibold)
                 }
                 .foregroundStyle(.secondary)
@@ -65,7 +66,7 @@ struct InvoiceListView: View {
                                 Text(dueDescription(invoice))
                                     .foregroundStyle(isOverdue(invoice) ? SageActiveTheme.negativeText : .secondary)
                                 Spacer()
-                                Text(PrototypeFormatting.euro(displayAmount(invoice)))
+                                Text(MoneyFormatting.euro(displayAmount(invoice)))
                                     .fontWeight(.semibold)
                             }
                             .font(.subheadline)
@@ -80,6 +81,16 @@ struct InvoiceListView: View {
         .background(SageActiveTheme.pageBackground)
         .navigationTitle(kind.rawValue)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                SageCarbonToolbarButton(
+                    icon: .chevronLeft,
+                    accessibilityLabel: "Back",
+                    action: dismiss.callAsFunction
+                )
+            }
+        }
     }
 
     private var rows: [InvoiceRowData] {
@@ -145,6 +156,7 @@ private struct InvoiceDetailView: View {
     let kind: InvoiceKind
     let invoice: InvoiceRowData
     @State private var showsReminderConfirmation = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         List {
@@ -157,13 +169,13 @@ private struct InvoiceDetailView: View {
             .listRowBackground(SageActiveTheme.cardBackground)
 
             Section("Amount") {
-                LabeledContent("Subtotal", value: PrototypeFormatting.euro(invoice.netCents))
-                LabeledContent("IVA", value: PrototypeFormatting.euro(invoice.ivaCents))
-                LabeledContent("Total", value: PrototypeFormatting.euro(invoice.grossCents))
+                LabeledContent("Subtotal", value: MoneyFormatting.euro(invoice.netCents))
+                LabeledContent("IVA", value: MoneyFormatting.euro(invoice.ivaCents))
+                LabeledContent("Total", value: MoneyFormatting.euro(invoice.grossCents))
                 if invoice.paidCents > 0 {
-                    LabeledContent("Paid", value: PrototypeFormatting.euro(invoice.paidCents))
+                    LabeledContent("Paid", value: MoneyFormatting.euro(invoice.paidCents))
                 }
-                LabeledContent("Outstanding", value: PrototypeFormatting.euro(invoice.remainingCents))
+                LabeledContent("Outstanding", value: MoneyFormatting.euro(invoice.remainingCents))
                     .fontWeight(.semibold)
             }
             .listRowBackground(SageActiveTheme.cardBackground)
@@ -183,6 +195,16 @@ private struct InvoiceDetailView: View {
         .background(SageActiveTheme.pageBackground)
         .navigationTitle(invoice.number)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                SageCarbonToolbarButton(
+                    icon: .chevronLeft,
+                    accessibilityLabel: "Back",
+                    action: dismiss.callAsFunction
+                )
+            }
+        }
         .alert("Reminder simulated", isPresented: $showsReminderConfirmation) {
             Button("Done", role: .cancel) { }
         } message: {

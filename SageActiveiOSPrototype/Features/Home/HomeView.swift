@@ -1,5 +1,5 @@
-import Charts
 import SwiftUI
+import UniformTypeIdentifiers
 
 enum HomeMode: String, CaseIterable, Identifiable {
     case overview = "Overview"
@@ -7,85 +7,216 @@ enum HomeMode: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
+enum DashboardSectionKind: String, CaseIterable, Identifiable {
+    case banking
+    case salesInvoices
+    case purchaseInvoices
+    case salesQuotes
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .banking: "Banking"
+        case .salesInvoices: "Sales invoices"
+        case .purchaseInvoices: "Purchase invoices"
+        case .salesQuotes: "Sales quotes"
+        }
+    }
+}
+
+enum DashboardBankingDemoState: String, CaseIterable, Identifiable {
+    case connected
+    case noBanks
+    case projectedBelowZero
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .connected: "Banks connected"
+        case .noBanks: "No banks connected"
+        case .projectedBelowZero: "Projected below zero"
+        }
+    }
+}
+
 struct HomeView: View {
     let store: PrototypeStore
 
     @State private var mode: HomeMode
     @State private var showsDisplaySettings = false
+    @State private var showsInvoiceDemoControls = false
+    @State private var salesInvoiceDemoState = FigmaInvoiceDemoState()
+    @State private var purchaseInvoiceDemoState = FigmaInvoiceDemoState()
+    @State private var hasPendingQuotes = true
     @AppStorage("includeIvaInAnalytics") private var includeIva = true
+    @AppStorage(SageActiveTheme.darkerSurfacePreferenceKey) private var darkerDarkModeSurface = false
     @AppStorage("cashInChartColour") private var cashInColourRaw = ChartColour.positive.rawValue
     @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.caution.rawValue
+    @AppStorage("dashboardSectionOrder") private var dashboardSectionOrderRaw = "banking,salesInvoices,purchaseInvoices,salesQuotes"
+    @AppStorage("dashboardShowsBanking") private var dashboardShowsBanking = true
+    @AppStorage("dashboardShowsSalesInvoices") private var dashboardShowsSalesInvoices = true
+    @AppStorage("dashboardShowsPurchaseInvoices") private var dashboardShowsPurchaseInvoices = true
+    @AppStorage("dashboardShowsSalesQuotes") private var dashboardShowsSalesQuotes = true
+    @AppStorage("dashboardBankingDemoState") private var bankingDemoStateRaw = DashboardBankingDemoState.connected.rawValue
+    let onShowQuotes: () -> Void
 
-    init(store: PrototypeStore, initialMode: HomeMode = .overview) {
+    init(
+        store: PrototypeStore,
+        initialMode: HomeMode = .overview,
+        onShowQuotes: @escaping () -> Void = {}
+    ) {
         self.store = store
+        self.onShowQuotes = onShowQuotes
         _mode = State(initialValue: initialMode)
         _showsDisplaySettings = State(initialValue: ProcessInfo.processInfo.arguments.contains("-showDisplaySettings"))
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                controls
-                    .padding(.horizontal)
+        ZStack(alignment: .top) {
+            SageActiveTheme.pageBackground
+                .ignoresSafeArea()
 
-                if mode == .overview {
-                    OverviewView(store: store, includeIva: includeIva)
+            SageActiveMeshBackground()
+                // Decorative only: extend beneath both system bars so the native
+                // tab-bar material can sample the lower green wash.
+                .ignoresSafeArea()
+
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    controls
                         .padding(.horizontal)
-                } else {
-                    InsightsView(store: store, includeIva: includeIva)
+
+                    if mode == .overview {
+                        FigmaDashboardOverview(
+                            store: store,
+                            includeIva: includeIva,
+                            sections: visibleDashboardSections,
+                            bankingDemoState: bankingDemoState,
+                            salesDemoState: salesInvoiceDemoState,
+                            purchaseDemoState: purchaseInvoiceDemoState,
+                            hasPendingQuotes: hasPendingQuotes,
+                            onShowQuotes: onShowQuotes
+                        )
+                        .padding(.horizontal)
+                    } else {
+                        InsightsView(store: store, includeIva: includeIva)
+                    }
                 }
+                .padding(.bottom, 32)
             }
-            .padding(.bottom, 32)
         }
-        .background(SageActiveTheme.pageBackground)
         .navigationTitle(store.dataset?.business.displayName ?? "Home")
         .navigationSubtitle("Updated just now")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            if mode == .overview {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showsInvoiceDemoControls = true
+                    } label: {
+                        SageCarbonIconView(
+                            .ellipsisVertical,
+                            pointSize: 20,
+                            color: SageActiveTheme.primaryText
+                        )
+                    }
+                    .accessibilityLabel("Dashboard card demo controls")
+                }
+            }
+
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    showsDisplaySettings = true
+                } label: {
+                    SageCarbonIconView(
+                        .settings,
+                        pointSize: 21,
+                        color: SageActiveTheme.primaryText
+                    )
+                }
+                .accessibilityLabel("Display settings")
+
+                NavigationLink {
+                    ProfileSettingsView()
+                } label: {
+                    SageCarbonIconView(
+                        .person,
+                        pointSize: 21,
+                        color: SageActiveTheme.primaryText
+                    )
+                }
+                .accessibilityLabel("Profile and settings")
+            }
+        }
+        .sheet(isPresented: $showsInvoiceDemoControls) {
+            FigmaInvoiceDemoControlsSheet(
+                sales: $salesInvoiceDemoState,
+                purchases: $purchaseInvoiceDemoState,
+                banking: bankingDemoStateBinding,
+                hasPendingQuotes: $hasPendingQuotes
+            )
+        }
+        .sheet(isPresented: $showsDisplaySettings) {
+            DashboardPersonalisationSheet(
+                includeIva: $includeIva,
+                darkerDarkModeSurface: $darkerDarkModeSurface,
+                cashInColour: cashInColourBinding,
+                cashOutColour: cashOutColourBinding,
+                sectionOrder: dashboardSectionOrderBinding,
+                visibility: dashboardVisibilityBinding
+            )
+        }
         .refreshable { await store.refresh() }
     }
 
     private var controls: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Picker("Home view", selection: $mode) {
-                    ForEach(HomeMode.allCases) { item in
-                        Text(item.rawValue).tag(item)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(height: 32)
-
-                Button {
-                    showsDisplaySettings = true
-                } label: {
-                    Image(systemName: "gearshape")
-                        .foregroundStyle(SageActiveTheme.primaryText)
-                        .frame(width: 32, height: 32)
-                        .background(.quaternary, in: Circle())
-                }
-                .buttonStyle(.plain)
-                .frame(height: 32)
-                .accessibilityLabel("Display settings")
-                .popover(isPresented: $showsDisplaySettings) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Toggle("Include IVA in figures", isOn: $includeIva)
-                            .toggleStyle(.switch)
-
-                        Divider()
-
-                        Text("Chart colours")
-                            .font(.headline)
-                        ChartColourPicker(title: "Sales / money in", selection: cashInColourBinding)
-                        ChartColourPicker(title: "Purchases / money out", selection: cashOutColourBinding)
-                    }
-                    .padding()
-                    .frame(minWidth: 320)
-                    .presentationCompactAdaptation(.popover)
-                }
+        Picker("Home view", selection: $mode) {
+            ForEach(HomeMode.allCases) { item in
+                Text(item.rawValue).tag(item)
             }
-
         }
+        .pickerStyle(.segmented)
         .padding(.top, 4)
+    }
+
+    private var visibleDashboardSections: [DashboardSectionKind] {
+        dashboardSectionOrder.filter { dashboardVisibilityBinding($0).wrappedValue }
+    }
+
+    private var dashboardSectionOrder: [DashboardSectionKind] {
+        let stored = dashboardSectionOrderRaw
+            .split(separator: ",")
+            .compactMap { DashboardSectionKind(rawValue: String($0)) }
+        return stored + DashboardSectionKind.allCases.filter { !stored.contains($0) }
+    }
+
+    private var dashboardSectionOrderBinding: Binding<[DashboardSectionKind]> {
+        Binding(
+            get: { dashboardSectionOrder },
+            set: { dashboardSectionOrderRaw = $0.map(\.rawValue).joined(separator: ",") }
+        )
+    }
+
+    private var bankingDemoState: DashboardBankingDemoState {
+        DashboardBankingDemoState(rawValue: bankingDemoStateRaw) ?? .connected
+    }
+
+    private var bankingDemoStateBinding: Binding<DashboardBankingDemoState> {
+        Binding(
+            get: { bankingDemoState },
+            set: { bankingDemoStateRaw = $0.rawValue }
+        )
+    }
+
+    private func dashboardVisibilityBinding(_ section: DashboardSectionKind) -> Binding<Bool> {
+        switch section {
+        case .banking: $dashboardShowsBanking
+        case .salesInvoices: $dashboardShowsSalesInvoices
+        case .purchaseInvoices: $dashboardShowsPurchaseInvoices
+        case .salesQuotes: $dashboardShowsSalesQuotes
+        }
     }
 
     private var cashInColourBinding: Binding<ChartColour> {
@@ -103,128 +234,210 @@ struct HomeView: View {
     }
 }
 
-struct OverviewView: View {
-    let store: PrototypeStore
-    let includeIva: Bool
+struct DashboardPersonalisationSheet: View {
+    @Binding var includeIva: Bool
+    @Binding var darkerDarkModeSurface: Bool
+    @Binding var cashInColour: ChartColour
+    @Binding var cashOutColour: ChartColour
+    @Binding var sectionOrder: [DashboardSectionKind]
+    let visibility: (DashboardSectionKind) -> Binding<Bool>
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var draggedSection: DashboardSectionKind?
 
     var body: some View {
-        VStack(spacing: 16) {
-            BankBalanceHomeCard(store: store)
-            InvoiceSummaryCard(kind: .sales, store: store, includeIva: includeIva)
-            InvoiceSummaryCard(kind: .purchases, store: store, includeIva: includeIva)
-            PendingQuotesCard(store: store, includeIva: includeIva)
-        }
-    }
-}
-
-private struct PendingQuotesCard: View {
-    let store: PrototypeStore
-    let includeIva: Bool
-
-    var body: some View {
-        let summary = store.pendingQuoteSummary(includeIva: includeIva)
-        PrototypeCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Quotes")
-                    .font(.headline)
-
-                VStack(alignment: .leading, spacing: SageActiveTheme.relatedSpacing) {
-                    Text(PrototypeFormatting.euro(summary.amountCents))
-                        .font(.title2.bold())
-                        .contentTransition(.numericText())
-                    Text("\(summary.count) pending quotes")
-                        .font(.subheadline)
-                        .foregroundStyle(SageActiveTheme.supportingText)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Pending quotes, \(summary.count), total value \(PrototypeFormatting.euro(summary.amountCents))")
-    }
-}
-
-private struct BankBalanceHomeCard: View {
-    let store: PrototypeStore
-
-    var body: some View {
-        NavigationLink {
-            BankBalanceView(store: store)
-        } label: {
-            PrototypeCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Overall bank balance")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-
-                    HStack(alignment: .center, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(PrototypeFormatting.euro(store.currentBalanceCents))
-                                .font(.title2.bold())
-                                .foregroundStyle(.primary)
-                                .contentTransition(.numericText())
-
-                            HStack(spacing: 10) {
-                                if let change = store.homeBalanceChange {
-                                    Label(
-                                        PrototypeFormatting.percent(change),
-                                        systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right"
-                                    )
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundStyle(change >= 0 ? SageActiveTheme.positiveText : SageActiveTheme.negativeText)
-                                }
-
-                                if let accounts = store.dataset?.bankAccounts {
-                                    HStack(spacing: -4) {
-                                        ForEach(accounts) { account in
-                                            BankBadge(name: account.institutionName)
-                                        }
-                                    }
-                                    .accessibilityElement(children: .combine)
-                                    .accessibilityLabel("Accounts connected from " + accounts.map(\.institutionName).joined(separator: ", "))
-                                }
-                            }
-                        }
-
-                        Spacer(minLength: 8)
-
-                        HStack(spacing: 8) {
-                            if let history = store.dataset?.bankBalanceHistory {
-                                Chart(history) { point in
-                                    LineMark(
-                                        x: .value("Date", point.date),
-                                        y: .value("Balance", point.balanceCents)
-                                    )
-                                    .interpolationMethod(.catmullRom)
-                                    .foregroundStyle(
-                                        (store.homeBalanceChange ?? 0) >= 0
-                                            ? SageActiveTheme.positiveVisual
-                                            : SageActiveTheme.negativeVisual
-                                    )
-                                }
-                                .chartXAxis(.hidden)
-                                .chartYAxis(.hidden)
-                                .frame(width: 104, height: 32)
-                                .accessibilityHidden(true)
-                            }
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
+        NavigationStack {
+            List {
+                Section {
+                    Toggle(isOn: $includeIva) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Include taxes")
+                                .font(.headline)
+                            Text("Show sales and purchase totals including tax.")
+                                .font(.caption)
+                                .foregroundStyle(SageActiveTheme.supportingText)
                         }
                     }
+                    .tint(SageActiveTheme.brand)
+                    .padding(.vertical, 8)
+
+                    Toggle(isOn: $darkerDarkModeSurface) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Dark-Mode Darker Surface")
+                                .font(.headline)
+                            Text("Use a #191919 surface for cards and containers in Dark Mode")
+                                .font(.caption)
+                                .foregroundStyle(SageActiveTheme.supportingText)
+                        }
+                    }
+                    .tint(SageActiveTheme.brand)
+                    .padding(.vertical, 8)
+                }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("Chart colours")
+                            .font(.headline)
+
+                        ChartColourPicker(
+                            title: "Money in",
+                            selection: $cashInColour,
+                            swatchSize: 40
+                        )
+
+                        ChartColourPicker(
+                            title: "Money out",
+                            selection: $cashOutColour,
+                            swatchSize: 40
+                        )
+                    }
+                    .padding(.vertical, 8)
+                }
+
+                Section {
+                    ForEach(sectionOrder) { section in
+                        DashboardSectionSettingsRow(
+                            section: section,
+                            isVisible: visibility(section),
+                            canMoveUp: sectionOrder.first != section,
+                            canMoveDown: sectionOrder.last != section,
+                            draggedSection: $draggedSection,
+                            sectionOrder: $sectionOrder,
+                            moveUp: { move(section, by: -1) },
+                            moveDown: { move(section, by: 1) }
+                        )
+                    }
+                } header: {
+                    Text("Dashboard sections")
+                } footer: {
+                    Text("Show, hide or drag sections into the order that best matches your priorities.")
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Dashboard settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
                 }
             }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(balanceAccessibilityLabel)
-        .accessibilityHint("Shows bank balance details and forecast")
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
 
-    private var balanceAccessibilityLabel: String {
-        let balance = PrototypeFormatting.euro(store.currentBalanceCents)
-        guard let change = store.homeBalanceChange else { return "Overall bank balance, \(balance)" }
-        let direction = change >= 0 ? "increased" : "decreased"
-        return "Overall bank balance, \(balance), \(direction) by \(PrototypeFormatting.percent(abs(change), signed: false)) over the previous 30 days"
+    private func move(_ section: DashboardSectionKind, by offset: Int) {
+        guard let index = sectionOrder.firstIndex(of: section) else { return }
+        let destination = index + offset
+        guard sectionOrder.indices.contains(destination) else { return }
+        sectionOrder.swapAt(index, destination)
+    }
+}
+
+private struct DashboardSectionSettingsRow: View {
+    let section: DashboardSectionKind
+    @Binding var isVisible: Bool
+    let canMoveUp: Bool
+    let canMoveDown: Bool
+    @Binding var draggedSection: DashboardSectionKind?
+    @Binding var sectionOrder: [DashboardSectionKind]
+    let moveUp: () -> Void
+    let moveDown: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            SageCarbonIconView(
+                .dragVertical,
+                pointSize: 20,
+                color: SageActiveTheme.supportingText
+            )
+            .frame(width: 20, height: 20)
+            .accessibilityHidden(true)
+
+            Toggle(section.title, isOn: $isVisible)
+                .tint(SageActiveTheme.brand)
+
+            Menu {
+                Button {
+                    moveUp()
+                } label: {
+                    Label {
+                        Text("Move up")
+                    } icon: {
+                        SageCarbonIconView(
+                            .arrowUp,
+                            pointSize: 20,
+                            color: SageActiveTheme.primaryText
+                        )
+                    }
+                }
+                .disabled(!canMoveUp)
+
+                Button {
+                    moveDown()
+                } label: {
+                    Label {
+                        Text("Move down")
+                    } icon: {
+                        SageCarbonIconView(
+                            .arrowDown,
+                            pointSize: 20,
+                            color: SageActiveTheme.primaryText
+                        )
+                    }
+                }
+                .disabled(!canMoveDown)
+            } label: {
+                SageCarbonIconView(
+                    .ellipsisVertical,
+                    pointSize: 20,
+                    color: SageActiveTheme.primaryText
+                )
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .accessibilityLabel("Reorder \(section.title)")
+            .accessibilityHint("Choose move up or move down")
+        }
+        .padding(.vertical, 4)
+        .onDrag {
+            draggedSection = section
+            return NSItemProvider(object: section.rawValue as NSString)
+        }
+        .onDrop(
+            of: [UTType.text],
+            delegate: DashboardSectionDropDelegate(
+                target: section,
+                draggedSection: $draggedSection,
+                sectionOrder: $sectionOrder
+            )
+        )
+    }
+}
+
+private struct DashboardSectionDropDelegate: DropDelegate {
+    let target: DashboardSectionKind
+    @Binding var draggedSection: DashboardSectionKind?
+    @Binding var sectionOrder: [DashboardSectionKind]
+
+    func dropEntered(info: DropInfo) {
+        guard let draggedSection,
+              draggedSection != target,
+              let fromIndex = sectionOrder.firstIndex(of: draggedSection),
+              let toIndex = sectionOrder.firstIndex(of: target) else { return }
+
+        withAnimation(.snappy(duration: 0.24)) {
+            sectionOrder.move(
+                fromOffsets: IndexSet(integer: fromIndex),
+                toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
+            )
+        }
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedSection = nil
+        return true
     }
 }
 
@@ -237,89 +450,5 @@ enum InvoiceKind: String {
         case .sales: "Money awaiting payment"
         case .purchases: "Money awaiting payment to suppliers"
         }
-    }
-}
-
-private struct InvoiceSummaryCard: View {
-    let kind: InvoiceKind
-    let store: PrototypeStore
-    let includeIva: Bool
-
-    var body: some View {
-        let all = summary(.all)
-        PrototypeCard {
-            VStack(alignment: .leading, spacing: 14) {
-                Text(kind.rawValue)
-                    .font(.headline)
-
-                VStack(alignment: .leading, spacing: SageActiveTheme.relatedSpacing) {
-                    Text(PrototypeFormatting.euro(all.amountCents))
-                        .font(.title2.bold())
-                        .contentTransition(.numericText())
-
-                    Text("\(all.count) unpaid invoices")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Divider()
-
-                InvoiceSummaryLink(kind: kind, urgency: .overdue, summary: summary(.overdue), store: store)
-                Divider()
-                InvoiceSummaryLink(kind: kind, urgency: .dueSoon, summary: summary(.dueSoon), store: store)
-                Divider()
-                NavigationLink {
-                    InvoiceListView(kind: kind, initialUrgency: .all, store: store)
-                } label: {
-                    HStack {
-                        Text("View all outstanding invoices")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                    }
-                    .font(.subheadline)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private func summary(_ urgency: InvoiceUrgency) -> OutstandingSummary {
-        guard let dataset = store.dataset else { return OutstandingSummary(count: 0, amountCents: 0) }
-        return switch kind {
-        case .sales: store.summary(dataset.salesInvoices, urgency: urgency, includeIva: includeIva)
-        case .purchases: store.summary(dataset.purchaseInvoices, urgency: urgency, includeIva: includeIva)
-        }
-    }
-}
-
-private struct InvoiceSummaryLink: View {
-    let kind: InvoiceKind
-    let urgency: InvoiceUrgency
-    let summary: OutstandingSummary
-    let store: PrototypeStore
-
-    var body: some View {
-        NavigationLink {
-            InvoiceListView(kind: kind, initialUrgency: urgency, store: store)
-        } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(urgency == .dueSoon ? "Due in the next 7 days" : urgency.rawValue)
-                        .font(.subheadline)
-                    Text("\(summary.count) invoices")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Text(PrototypeFormatting.euro(summary.amountCents))
-                    .font(.subheadline)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 }

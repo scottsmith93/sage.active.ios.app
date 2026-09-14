@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		B10000000000000000000011 /* SageActiveWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* SageActiveWidgets.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C10000000000000000000001 /* Graphite in Frameworks */ = {isa = PBXBuildFile; productRef = C10000000000000000000003 /* Graphite */; };
+		E10000000000000000000001 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = E10000000000000000000003 /* Lottie */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +75,11 @@
 			path = SageActiveWidgets;
 			sourceTree = "<group>";
 		};
+		D10000000000000000000001 /* SharedFormatting */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SharedFormatting;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +88,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C10000000000000000000001 /* Graphite in Frameworks */,
+				E10000000000000000000001 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -100,6 +107,7 @@
 			children = (
 				A10000000000000000000001 /* SageActiveiOSPrototype */,
 				B10000000000000000000001 /* SageActiveWidgets */,
+				D10000000000000000000001 /* SharedFormatting */,
 				A10000000000000000000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -132,10 +140,12 @@
 			);
 			fileSystemSynchronizedGroups = (
 				A10000000000000000000001 /* SageActiveiOSPrototype */,
+				D10000000000000000000001 /* SharedFormatting */,
 			);
 			name = SageActiveiOSPrototype;
 			packageProductDependencies = (
 				C10000000000000000000003 /* Graphite */,
+				E10000000000000000000003 /* Lottie */,
 			);
 			productName = SageActiveiOSPrototype;
 			productReference = A10000000000000000000005 /* SageActiveiOSPrototype.app */;
@@ -155,6 +165,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				B10000000000000000000001 /* SageActiveWidgets */,
+				D10000000000000000000001 /* SharedFormatting */,
 			);
 			name = SageActiveWidgets;
 			packageProductDependencies = (
@@ -190,11 +201,12 @@
 			);
 			mainGroup = A10000000000000000000003;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
-			productRefGroup = A10000000000000000000004 /* Products */;
 			packageReferences = (
 				C10000000000000000000002 /* XCLocalSwiftPackageReference "Packages/SageGraphiteTokens" */,
+				E10000000000000000000002 /* XCRemoteSwiftPackageReference "lottie-spm" */,
 			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A10000000000000000000004 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -246,21 +258,6 @@
 		};
 /* End PBXTargetDependency section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		C10000000000000000000002 /* XCLocalSwiftPackageReference "Packages/SageGraphiteTokens" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = Packages/SageGraphiteTokens;
-		};
-/* End XCLocalSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		C10000000000000000000003 /* Graphite */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C10000000000000000000002 /* XCLocalSwiftPackageReference "Packages/SageGraphiteTokens" */;
-			productName = Graphite;
-		};
-/* End XCSwiftPackageProductDependency section */
-
 /* Begin XCBuildConfiguration section */
 		A1000000000000000000000C /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -300,7 +297,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 63SX979Z66;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SageActiveiOSPrototype/Info.plist;
@@ -331,7 +328,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 63SX979Z66;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SageActiveiOSPrototype/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Sage Active";
@@ -361,7 +358,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 63SX979Z66;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SageActiveWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -387,7 +384,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 63SX979Z66;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SageActiveWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -438,6 +435,37 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		C10000000000000000000002 /* XCLocalSwiftPackageReference "Packages/SageGraphiteTokens" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SageGraphiteTokens;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E10000000000000000000002 /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.6.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C10000000000000000000003 /* Graphite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C10000000000000000000002 /* XCLocalSwiftPackageReference "Packages/SageGraphiteTokens" */;
+			productName = Graphite;
+		};
+		E10000000000000000000003 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E10000000000000000000002 /* XCRemoteSwiftPackageReference "lottie-spm" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1000000000000000000000A /* Project object */;
 }

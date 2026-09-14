@@ -16,13 +16,14 @@ struct PrototypeCard<Content: View>: View {
 
 struct BankBadge: View {
     let name: String
+    var size: CGFloat = 24
 
     var body: some View {
         Image(assetName)
             .resizable()
             .scaledToFit()
-            .padding(2)
-            .frame(width: 24, height: 24)
+            .padding(size <= 16 ? 1 : 2)
+            .frame(width: size, height: size)
             .background(.white, in: Circle())
             .clipShape(Circle())
             .overlay {
@@ -43,17 +44,17 @@ struct BankBadge: View {
 }
 
 enum ChartColour: String, CaseIterable, Identifiable {
-    case primary, secondary, tertiary, information, positive, caution
+    case primary, secondary, information, positive, caution, error
 
     var id: Self { self }
     var name: String {
         switch self {
         case .primary: "Primary"
         case .secondary: "Secondary"
-        case .tertiary: "Tertiary"
         case .information: "Information"
         case .positive: "Positive"
         case .caution: "Caution"
+        case .error: "Error"
         }
     }
 
@@ -61,10 +62,10 @@ enum ChartColour: String, CaseIterable, Identifiable {
         switch self {
         case .primary: SageActiveTheme.brand
         case .secondary: SageActiveTheme.secondaryVisual
-        case .tertiary: SageActiveTheme.tertiaryVisual
         case .information: SageActiveTheme.informationVisual
         case .positive: SageActiveTheme.positiveVisual
         case .caution: SageActiveTheme.warningVisual
+        case .error: SageActiveTheme.negativeVisual
         }
     }
 }
@@ -72,30 +73,35 @@ enum ChartColour: String, CaseIterable, Identifiable {
 struct ChartColourPicker: View {
     let title: String
     @Binding var selection: ChartColour
+    var swatchSize: CGFloat = 28
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
-            HStack(spacing: 12) {
+            HStack(spacing: 0) {
                 ForEach(ChartColour.allCases) { option in
                     Button {
                         selection = option
                     } label: {
                         Circle()
                             .fill(option.colour)
-                            .frame(width: 28, height: 28)
+                            .frame(width: swatchSize, height: swatchSize)
                             .overlay {
                                 if selection == option {
                                     Image(systemName: "checkmark")
                                         .font(.caption.bold())
-                                        .foregroundStyle(SageActiveTheme.primaryText)
+                                        .foregroundStyle(.white)
                                 }
                             }
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(title), \(option.name)")
                     .accessibilityAddTraits(selection == option ? .isSelected : [])
+
+                    if option != ChartColour.allCases.last {
+                        Spacer(minLength: 8)
+                    }
                 }
             }
         }
@@ -103,18 +109,36 @@ struct ChartColourPicker: View {
     }
 }
 
+enum SelectionPillVariant {
+    /// The established app pill used by Insights period filters.
+    case standard
+    /// The outlined document-status treatment used by Sales lists.
+    case salesFilter
+}
+
 /// A shared pill for time periods, document statuses and future quick-filter controls.
 struct SelectionPill: View {
     let title: String
     var count: Int?
     let isSelected: Bool
+    var showsSelectionIcon = false
+    var variant: SelectionPillVariant = .standard
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 3) {
+                if showsSelectionIcon && isSelected {
+                    SageCarbonIconView(
+                        .tickThick,
+                        pointSize: 16,
+                        color: SageActiveTheme.selectedPillText
+                    )
+                    .frame(width: 16, height: 16)
+                }
+
                 Text(title)
-                    .fontWeight(.medium)
+                    .fontWeight(titleWeight)
                 if let count {
                     Text("(\(count))")
                         .fontWeight(.regular)
@@ -122,19 +146,62 @@ struct SelectionPill: View {
             }
             .font(.subheadline)
             .foregroundStyle(isSelected ? SageActiveTheme.selectedPillText : SageActiveTheme.primaryText)
-            .padding(.horizontal, 13)
+            .padding(.horizontal, horizontalPadding)
             .padding(.vertical, 8)
             .background(
-                isSelected ? SageActiveTheme.selectedPillBackground : SageActiveTheme.pillBackground,
+                fillColour,
                 in: Capsule()
             )
             .overlay {
                 Capsule()
-                    .stroke(isSelected ? SageActiveTheme.selectedPillStroke : .clear, lineWidth: 1.5)
+                    .stroke(strokeColour, lineWidth: strokeWidth)
             }
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var titleWeight: Font.Weight {
+        switch variant {
+        case .standard: .medium
+        case .salesFilter: isSelected ? .semibold : .regular
+        }
+    }
+
+    private var horizontalPadding: CGFloat {
+        switch variant {
+        case .standard: 13
+        case .salesFilter: 10
+        }
+    }
+
+    private var fillColour: Color {
+        if isSelected {
+            return SageActiveTheme.selectedPillBackground
+        }
+
+        switch variant {
+        case .standard: return SageActiveTheme.pillBackground
+        case .salesFilter: return SageActiveTheme.cardBackground
+        }
+    }
+
+    private var strokeColour: Color {
+        if isSelected {
+            return SageActiveTheme.selectedPillStroke
+        }
+
+        switch variant {
+        case .standard: return Color.clear
+        case .salesFilter: return SageActiveTheme.unselectedPillStroke
+        }
+    }
+
+    private var strokeWidth: CGFloat {
+        switch variant {
+        case .standard: isSelected ? 1.5 : 0
+        case .salesFilter: 1
+        }
     }
 }
