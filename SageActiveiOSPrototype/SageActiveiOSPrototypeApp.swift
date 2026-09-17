@@ -22,4 +22,4 @@ struct SageActiveiOSPrototypeApp: App {
             }
         }
     }
-}
+} 
