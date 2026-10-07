@@ -106,6 +106,10 @@ struct HomeView: View {
                 }
                 .padding(.bottom, 32)
             }
+            // Keep the native top scroll-edge treatment soft. This preserves the standard
+            // collapsed navigation title/subtitle transition while preventing the scroll blur
+            // from becoming a strong colour block over “Updated just now”.
+            .scrollEdgeEffectStyle(.soft, for: .top)
         }
         .navigationTitle(store.dataset?.business.displayName ?? "Home")
         .navigationSubtitle("Updated just now")

@@ -10,7 +10,7 @@ struct SageActiveMeshBackground: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .top) {
-                topMesh
+                topMesh(for: geometry.size.height)
 
                 bottomCornerWash
                     .frame(height: bottomWashHeight(for: geometry.size.height))
@@ -21,25 +21,49 @@ struct SageActiveMeshBackground: View {
         .allowsHitTesting(false)
     }
 
-    private var topMesh: some View {
+    private func topMesh(for availableHeight: CGFloat) -> some View {
         mesh(points: restingMeshPoints)
         .frame(maxWidth: .infinity)
-        // The revised Figma study extends the upper wash from about 17.7% to 25.3% of the
-        // reference screen. Scaling the established native treatment preserves its mesh points
-        // and fade character while giving it the same longer reach.
-        .frame(height: 400)
+        // The light Figma variant keeps the top wash to roughly 25% of the viewport. Keeping
+        // this region short is important: the large navigation title and its subtitle remain
+        // on a calm background when the title collapses during scrolling.
+        .frame(height: topMeshHeight(for: availableHeight))
         .mask {
-            LinearGradient(
-                stops: [
-                    .init(color: .white, location: 0.00),
-                    .init(color: .white.opacity(0.96), location: 0.34),
-                    .init(color: .white.opacity(0.34), location: 0.68),
-                    .init(color: .clear, location: 1.00),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            if colorScheme == .dark {
+                LinearGradient(
+                    stops: [
+                        .init(color: .white, location: 0.00),
+                        .init(color: .white.opacity(0.96), location: 0.34),
+                        .init(color: .white.opacity(0.34), location: 0.68),
+                        .init(color: .clear, location: 1.00),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            } else {
+                // The Figma light variant uses a translucent white veil over the brand wash.
+                // This keeps the colours present at the status-bar edge but removes the strong
+                // colour field that was reducing subtitle contrast after the title collapsed.
+                LinearGradient(
+                    stops: [
+                        .init(color: .white.opacity(0.38), location: 0.00),
+                        .init(color: .white.opacity(0.28), location: 0.24),
+                        .init(color: .white.opacity(0.08), location: 0.64),
+                        .init(color: .clear, location: 1.00),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
         }
+    }
+
+    private func topMeshHeight(for availableHeight: CGFloat) -> CGFloat {
+        if colorScheme == .dark {
+            return 400
+        }
+
+        return min(max(availableHeight * 0.253, 200), 240)
     }
 
     private func mesh(points: [SIMD2<Float>]) -> some View {
@@ -82,7 +106,9 @@ struct SageActiveMeshBackground: View {
     }
 
     private var bottomGreen: Color {
-        SageActiveTheme.meshBrandGreen.opacity(colorScheme == .dark ? 0.25 : 0.33)
+        // Light Mode uses a softer wash so the mesh remains atmospheric rather than
+        // competing with the content on brighter and wider simulator displays.
+        SageActiveTheme.meshBrandGreen.opacity(colorScheme == .dark ? 0.25 : 0.22)
     }
 
     private func bottomWashHeight(for availableHeight: CGFloat) -> CGFloat {
@@ -116,15 +142,18 @@ struct SageActiveMeshBackground: View {
         }
 
         return [
+            // The Figma light variant keeps the brand colours intact, then applies a translucent
+            // background veil in the mask above. This preserves the visible blue/green at the
+            // status-bar edge while still resolving quickly to the page background.
             SageActiveTheme.meshBrandGreen.opacity(0.78),
             SageActiveTheme.meshBrandGreen.opacity(0.66),
             SageActiveTheme.meshBrandBlue.opacity(0.80),
             SageActiveTheme.meshBrandGreen.opacity(0.66),
             SageActiveTheme.meshBrandGreen.opacity(0.78),
             SageActiveTheme.meshBrandBlue.opacity(0.80),
-            SageActiveTheme.meshBrandGreen.opacity(0.30),
+            SageActiveTheme.meshBrandGreen.opacity(0.22),
             background,
-            SageActiveTheme.meshBrandBlue.opacity(0.32),
+            SageActiveTheme.meshBrandBlue.opacity(0.24),
             background, background, background,
         ]
     }

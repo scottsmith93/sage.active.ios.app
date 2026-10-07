@@ -80,7 +80,7 @@ struct InsightsView: View {
             Text("Sales and purchase insights")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(SageActiveTheme.supportingText)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, SageActiveTheme.pageSpacing)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -92,7 +92,7 @@ struct InsightsView: View {
             Text(contextLabel)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, SageActiveTheme.pageSpacing)
         }
         .onChange(of: periodType) {
             var transaction = Transaction(animation: nil)
@@ -122,21 +122,25 @@ struct InsightsView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .leading) {
-                LinearGradient(
-                    colors: [
-                        SageActiveTheme.pageBackground.opacity(0.94),
-                        SageActiveTheme.pageBackground.opacity(0)
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                .frame(width: 16)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+            // Mask the pill content instead of painting a background over it. This keeps
+            // the mesh/page surface visible while retaining a subtle 16pt scroll affordance.
+            .mask(alignment: .leading) {
+                HStack(spacing: 0) {
+                    LinearGradient(
+                        colors: [.clear, .black],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: SageActiveTheme.pageSpacing)
+
+                    Rectangle()
+                        .fill(.black)
+                        .frame(maxWidth: .infinity)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, SageActiveTheme.pageSpacing)
         .frame(height: 48)
         // Month, year and fiscal-year selections replace the secondary pill set immediately.
         // Suppressing animation here avoids SwiftUI's default insertion/removal fade, which
@@ -190,7 +194,7 @@ struct InsightsView: View {
                         .id(period.period)
                     }
                 }
-                .padding(.trailing, 16)
+                .padding(.trailing, SageActiveTheme.pageSpacing)
                 .padding(.vertical, 3)
             }
             .onAppear {
@@ -220,7 +224,7 @@ struct InsightsView: View {
                     selectPeriodFromPill("2026")
                 }
             }
-            .padding(.trailing, 16)
+            .padding(.trailing, SageActiveTheme.pageSpacing)
             .padding(.vertical, 3)
         }
     }
