@@ -171,21 +171,21 @@ private struct SpeechInvoiceEntryButton: View {
 
 private struct SpeechInvoiceButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .glassEffect(.regular.interactive(), in: Circle())
-            .overlay {
-                // The AI brand gradient is intentionally only a 10% wash so
-                // the control remains recognisably native glass.
-                Circle()
-                    .fill(SageActiveTheme.speechButtonGradient.opacity(0.10))
-            }
-            .overlay {
-                Circle()
-                    .stroke(SageActiveTheme.speechButtonGradient, lineWidth: 1.5)
-                    .opacity(configuration.isPressed ? 0 : 1)
-            }
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
-            .animation(.smooth(duration: 0.18), value: configuration.isPressed)
+        ZStack {
+            Circle()
+                .fill(SageActiveTheme.speechButtonGradient.opacity(0.10))
+
+            configuration.label
+        }
+        .frame(width: 56, height: 56)
+        .glassEffect(.regular.interactive(), in: Circle())
+        .overlay {
+            Circle()
+                .stroke(SageActiveTheme.speechButtonGradient, lineWidth: 1.5)
+                .opacity(configuration.isPressed ? 0 : 1)
+        }
+        .scaleEffect(configuration.isPressed ? 0.94 : 1)
+        .animation(.smooth(duration: 0.18), value: configuration.isPressed)
     }
 }
 

@@ -126,34 +126,24 @@ struct SpeechToInvoiceView: View {
     var body: some View {
         NavigationStack {
             content
-                .id(phase)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.clear)
-                .navigationTitle(phase == .draft ? "Sales invoice" : "Speech to invoice")
-                .navigationBarTitleDisplayMode(phase == .draft ? .large : .inline)
+                .navigationTitle("Speech to Invoice")
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        if phase == .draft {
-                            SpeechDraftToolbarButton(icon: .close, label: "Close sales invoice", action: dismiss.callAsFunction)
-                        } else {
-                            Button {
-                                dismiss()
-                            } label: {
-                                SageCarbonIconView(
-                                    .close,
-                                    pointSize: 20,
-                                    color: SageActiveTheme.primaryText
-                                )
-                            }
-                            .accessibilityLabel("Close speech to invoice")
+                        Button(action: dismiss.callAsFunction) {
+                            SageCarbonIconView(
+                                .close,
+                                pointSize: 20,
+                                color: SageActiveTheme.primaryText
+                            )
                         }
+                        .buttonStyle(.glass)
+                        .buttonBorderShape(.circle)
+                        .accessibilityLabel("Close Speech to Invoice")
                     }
-                    if phase == .draft {
-                        ToolbarItemGroup(placement: .topBarTrailing) {
-                            SpeechDraftToolbarButton(icon: .edit, label: "Edit invoice") { }
-                            SpeechDraftToolbarButton(icon: .delete, label: "Delete invoice") { }
-                        }
-                    }
+                    .sharedBackgroundVisibility(.hidden)
                 }
                 .toolbarBackground(.hidden, for: .navigationBar)
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.32), value: phase)
@@ -188,10 +178,9 @@ struct SpeechToInvoiceView: View {
     @ViewBuilder
     private var content: some View {
         switch phase {
-        case .idle:
-            idleContent.transition(speechContentTransition)
-        case .listening:
-            listeningContent.transition(speechContentTransition)
+        case .idle, .listening:
+            recordingEntryContent
+                .transition(.identity)
         case .transcribing:
             transcribingContent.transition(speechContentTransition)
         case .draft:
@@ -207,7 +196,7 @@ struct SpeechToInvoiceView: View {
             : .opacity.combined(with: .scale(scale: 0.98, anchor: .center))
     }
 
-    private var idleContent: some View {
+    private var recordingEntryContent: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 16)
 
@@ -215,84 +204,92 @@ struct SpeechToInvoiceView: View {
 
             Spacer(minLength: 12)
 
-            HStack(spacing: 16) {
-                Text("Tap to start creating")
-                    .font(.subheadline)
-                    .foregroundStyle(SageActiveTheme.primaryText)
-
-                Spacer(minLength: 8)
-
-                SpeechCircleButton(
-                    icon: .microphone,
-                    accessibilityLabel: "Start recording",
-                    style: .outline,
-                    action: startRecording
-                )
+            if phase == .listening {
+                listeningControls
+                    .transition(
+                        reduceMotion
+                            ? .identity
+                            : .opacity.combined(with: .scale(scale: 0.98, anchor: .bottom))
+                    )
+            } else {
+                idleControls
+                    .transition(
+                        reduceMotion
+                            ? .identity
+                            : .opacity.combined(with: .scale(scale: 0.98, anchor: .bottom))
+                    )
             }
-            .padding(.horizontal, SageActiveTheme.pageSpacing)
-            .padding(.bottom, 12)
 
             privacyNotice
         }
         .padding(.bottom, 24)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.32), value: phase)
     }
 
-    private var listeningContent: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 16)
+    private var idleControls: some View {
+        HStack(spacing: 16) {
+            Text("Tap to start creating")
+                .font(.subheadline)
+                .foregroundStyle(SageActiveTheme.primaryText)
 
-            exampleContent
+            Spacer(minLength: 8)
 
-            Spacer(minLength: 12)
-
-            VStack(spacing: 12) {
-                HStack {
-                    Label {
-                        Text(recorder.reachedLimit ? "Recording complete" : "Listening")
-                    } icon: {
-                        Circle()
-                            .fill(SageActiveTheme.negativeVisual)
-                            .frame(width: 8, height: 8)
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(SageActiveTheme.primaryText)
-
-                    Spacer()
-
-                    Text(timerText)
-                        .font(.footnote.monospacedDigit())
-                        .foregroundStyle(SageActiveTheme.primaryText)
-                }
-
-                // Keep the waveform's breathing room fixed at 16pt on both sides.
-                HStack(spacing: SageActiveTheme.pageSpacing) {
-                    SpeechCircleButton(
-                        icon: .delete,
-                        accessibilityLabel: "Discard recording",
-                        style: .outline,
-                        action: discardRecording
-                    )
-
-                    SpeechWaveform(
-                        levels: recorder.levels,
-                        reduceMotion: reduceMotion
-                    )
-                    .frame(maxWidth: .infinity)
-
-                    SpeechCircleButton(
-                        icon: .arrowRight,
-                        accessibilityLabel: "Send recording",
-                        style: .primary,
-                        action: sendRecording
-                    )
-                }
-            }
-            .padding(.horizontal, SageActiveTheme.pageSpacing)
-            .padding(.bottom, 12)
-
-            privacyNotice
+            SpeechCircleButton(
+                icon: .microphone,
+                accessibilityLabel: "Start recording",
+                style: .outline,
+                action: startRecording
+            )
         }
-        .padding(.bottom, 24)
+        .padding(.horizontal, SageActiveTheme.pageSpacing)
+        .padding(.bottom, 12)
+    }
+
+    private var listeningControls: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Label {
+                    Text(recorder.reachedLimit ? "Recording complete" : "Listening")
+                } icon: {
+                    Circle()
+                        .fill(SageActiveTheme.negativeVisual)
+                        .frame(width: 8, height: 8)
+                }
+                .font(.subheadline)
+                .foregroundStyle(SageActiveTheme.primaryText)
+
+                Spacer()
+
+                Text(timerText)
+                    .font(.footnote.monospacedDigit())
+                    .foregroundStyle(SageActiveTheme.primaryText)
+            }
+
+            // Keep the waveform's breathing room fixed at 16pt on both sides.
+            HStack(spacing: SageActiveTheme.pageSpacing) {
+                SpeechCircleButton(
+                    icon: .delete,
+                    accessibilityLabel: "Discard recording",
+                    style: .outline,
+                    action: discardRecording
+                )
+
+                SpeechWaveform(
+                    levels: recorder.levels,
+                    reduceMotion: reduceMotion
+                )
+                .frame(maxWidth: .infinity)
+
+                SpeechCircleButton(
+                    icon: .arrowRight,
+                    accessibilityLabel: "Send recording",
+                    style: .primary,
+                    action: sendRecording
+                )
+            }
+        }
+        .padding(.horizontal, SageActiveTheme.pageSpacing)
+        .padding(.bottom, 12)
     }
 
     private var transcribingContent: some View {

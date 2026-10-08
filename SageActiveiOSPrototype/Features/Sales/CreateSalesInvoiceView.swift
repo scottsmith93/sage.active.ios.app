@@ -152,6 +152,7 @@ struct CreateSalesInvoiceView: View {
                         showsDiscardAlert = true
                     }
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if canCreate {
@@ -788,6 +789,7 @@ private struct CustomerSelectionSheet: View {
                         action: dismiss.callAsFunction
                     )
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.large])
@@ -837,6 +839,7 @@ private struct ProductSelectionSheet: View {
                         action: dismiss.callAsFunction
                     )
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.large])
@@ -1057,6 +1060,7 @@ private struct ProductDetailsSheet: View {
                         action: onClose
                     )
                 }
+                .sharedBackgroundVisibility(.hidden)
 
                 ToolbarItemGroup(placement: .keyboard) {
                     Button {
@@ -1305,6 +1309,7 @@ private struct InvoiceDateSelectionSheet: View {
                             action: dismiss.callAsFunction
                         )
                     }
+                    .sharedBackgroundVisibility(.hidden)
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { onSelect(selection) }
                     }
@@ -1353,6 +1358,7 @@ private struct DocumentPrefixSelectionSheet: View {
                         action: dismiss.callAsFunction
                     )
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.medium])

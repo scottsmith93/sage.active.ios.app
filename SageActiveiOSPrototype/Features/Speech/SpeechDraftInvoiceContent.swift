@@ -168,22 +168,6 @@ struct SpeechDraftInvoiceContent: View {
     }
 }
 
-struct SpeechDraftToolbarButton: View {
-    let icon: SageCarbonIcon
-    let label: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            SageCarbonIconView(icon, pointSize: 18, color: SageActiveTheme.primaryText)
-                .frame(width: 20, height: 20)
-        }
-        .frame(width: 40, height: 40)
-        .glassEffect(.regular.interactive(), in: Circle())
-        .accessibilityLabel(label)
-    }
-}
-
 private struct DraftInvoiceActionRow: View {
     let title: String
     let icon: SageCarbonIcon

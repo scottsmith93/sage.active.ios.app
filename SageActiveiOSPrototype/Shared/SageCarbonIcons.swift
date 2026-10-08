@@ -397,8 +397,8 @@ public struct SageCarbonToolbarButton: View {
             )
             .frame(width: 20, height: 20)
         }
+        .buttonStyle(.glass)
         .buttonBorderShape(.circle)
-        .controlSize(.large)
         .accessibilityLabel(accessibilityLabel)
     }
 }
