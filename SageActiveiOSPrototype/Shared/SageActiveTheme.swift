@@ -33,6 +33,7 @@ enum SageActiveTheme {
 
     static let primaryText = Theme.GRColorPalette.onSurface.color
     static let supportingText = Theme.GRColorPalette.onSurfaceSecondary.color
+    static let white = Theme.GRColorPalette.white.color
     static let brand = Theme.GRColorPalette.primaryAccent100.color
     static let brilliantGreen = Theme.GRColorPalette.brilliantGreen.color
     static let onBrand = Theme.GRColorPalette.onPrimary.color
@@ -42,6 +43,22 @@ enum SageActiveTheme {
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
+    /// Official Graphite AI/Copilot gradient used by the speech-entry control.
+    /// Keeping the three stops behind this adapter means the feature does not
+    /// import Graphite directly and future token migrations stay localized here.
+    static let speechButtonGradient = LinearGradient(
+        colors: speechButtonGradientColors,
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+    /// The same Copilot gradient stops exposed as semantic colours for effects
+    /// that need to animate the gradient itself (for example, a sheet halo).
+    /// Feature views still use this adapter rather than importing Graphite.
+    static let speechButtonGradientColors: [Color] = [
+        Theme.GRColorPalette.copilotGradientStop1.color,
+        Theme.GRColorPalette.copilotGradientStop2.color,
+        Theme.GRColorPalette.copilotGradientStop3.color
+    ]
     /// Fixed dark foreground for bright primary actions in either appearance mode.
     static let primaryActionForeground = Theme.GRColorPalette.backgroundInverted.color
 
@@ -57,6 +74,10 @@ enum SageActiveTheme {
     static let tabBarUnselectedForeground = Theme.GRColorPalette.onSurfaceSecondary.uiColor
 
     static let pillBackground = Theme.GRColorPalette.secondaryAccent10.color
+    /// Utility / Secondary / 010, used for the low-emphasis recording waveform.
+    static let secondaryUtility10 = Theme.GRColorPalette.secondaryAccent10.color
+    /// Utility / Secondary / 025, used for the speech recording waveform.
+    static let secondaryUtility25 = Theme.GRColorPalette.secondaryAccent25.color
     static let selectedPillBackground = Theme.GRColorPalette.primaryAccent10.color
     static let selectedPillText = Theme.GRColorPalette.primaryAccent100.color
     static let selectedPillStroke = Theme.GRColorPalette.primaryAccent100.color

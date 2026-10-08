@@ -466,6 +466,7 @@ public extension SageCarbonIcon {
     static let dragVertical = SageCarbonIcon(rawValue: "drag_vertical")!
     static let arrowUp = SageCarbonIcon(rawValue: "arrow_up")!
     static let arrowDown = SageCarbonIcon(rawValue: "arrow_down")!
+    static let arrowRight = SageCarbonIcon(rawValue: "arrow_right")!
     static let chevronRight = SageCarbonIcon(rawValue: "chevron_right")!
     static let chevronRightThick = SageCarbonIcon(rawValue: "chevron_right_thick")!
     static let chevronDown = SageCarbonIcon(rawValue: "chevron_down")!
@@ -482,9 +483,11 @@ public extension SageCarbonIcon {
     static let cross = SageCarbonIcon(rawValue: "cross")!
     static let crossCircle = SageCarbonIcon(rawValue: "cross_circle")!
     static let dashboard = SageCarbonIcon(rawValue: "dashboard")!
+    static let delete = SageCarbonIcon(rawValue: "delete")!
     static let documentTick = SageCarbonIcon(rawValue: "document_tick")!
     static let edit = SageCarbonIcon(rawValue: "edit")!
     static let email = SageCarbonIcon(rawValue: "email")!
+    static let filePdf = SageCarbonIcon(rawValue: "file_pdf")!
     static let ellipsisVertical = SageCarbonIcon(rawValue: "ellipsis_vertical")!
     static let error = SageCarbonIcon(rawValue: "error")!
     static let filter = SageCarbonIcon(rawValue: "filter")!

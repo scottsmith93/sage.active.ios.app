@@ -31,6 +31,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.finance</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Sage Active uses the microphone to record your spoken invoice request.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>carbon-icons-webfont.ttf</string>

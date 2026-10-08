@@ -76,7 +76,7 @@ struct CreateSalesInvoiceView: View {
     private var totalCents: Int { subtotalCents + ivaCents }
     private var canCreate: Bool { customer != nil && !lineItems.isEmpty }
 
-    init() {
+    init(prefilledDraft: Bool = false) {
         let arguments = ProcessInfo.processInfo.arguments
         let sampleCustomer = CreateInvoiceFixtures.customers[0]
         let sampleProduct = CreateInvoiceFixtures.products[0]
@@ -89,12 +89,12 @@ struct CreateSalesInvoiceView: View {
             description: sampleProduct.description ?? ""
         )
 
-        let hasCustomer = arguments.contains("-showCreateInvoiceProducts")
+        let hasCustomer = prefilledDraft || arguments.contains("-showCreateInvoiceProducts")
             || arguments.contains("-showCreateInvoiceProductDetails")
             || arguments.contains("-showCreateInvoiceComplete")
         _customer = State(initialValue: hasCustomer ? sampleCustomer : nil)
         _fulfilmentDate = State(initialValue: nil)
-        _lineItems = State(initialValue: arguments.contains("-showCreateInvoiceComplete") ? [sampleLine] : [])
+        _lineItems = State(initialValue: prefilledDraft || arguments.contains("-showCreateInvoiceComplete") ? [sampleLine] : [])
         _showsDiscardAlert = State(initialValue: arguments.contains("-showCreateInvoiceDiscard"))
 
         _activeSheet = State(initialValue: nil)
@@ -1359,7 +1359,7 @@ private struct DocumentPrefixSelectionSheet: View {
     }
 }
 
-private enum CreateInvoiceFixtures {
+enum CreateInvoiceFixtures {
     static let prefixes = ["SI-", "INV-", "FAC-", "2026-", "SA-"]
 
     static let customers: [InvoiceCustomer] = [

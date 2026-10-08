@@ -88,43 +88,22 @@ struct SalesView: View {
         )
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 12) {
-                    Button {
-                        // Speech-to-invoice will be connected in a future iteration.
-                    } label: {
-                        SageCarbonIconView(
-                            .microphone,
-                            pointSize: 20,
-                            color: SageActiveTheme.primaryText
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .frame(width: 48, height: 48)
-                    .glassEffect(.regular.interactive(), in: Circle())
-                    .overlay {
-                        Circle()
-                            .stroke(SageActiveTheme.brandGradient, lineWidth: 1)
-                    }
-                    .accessibilityLabel("Speech to invoice")
-                    .accessibilityHint("Speech to invoice is not available in this prototype")
-
-                    Button {
+                Button {
                         showsInvoiceCreation = true
-                    } label: {
-                        SageCarbonIconView(
-                            .plusLarge,
-                            pointSize: 20,
-                            color: SageActiveTheme.primaryActionForeground
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .frame(width: 48, height: 48)
-                    .glassEffect(
-                        .regular.tint(SageActiveTheme.brand).interactive(),
-                        in: Circle()
+                } label: {
+                    SageCarbonIconView(
+                        .plusLarge,
+                        pointSize: 20,
+                        color: SageActiveTheme.primaryActionForeground
                     )
-                    .accessibilityLabel("Create a new sales document")
                 }
+                .buttonStyle(.plain)
+                .frame(width: 48, height: 48)
+                .glassEffect(
+                    .regular.tint(SageActiveTheme.brand).interactive(),
+                    in: Circle()
+                )
+                .accessibilityLabel("Create a new sales document")
             }
             // iOS 26 groups trailing toolbar content into a shared glass capsule by
             // default. Keep the actions in the native toolbar, but make each
