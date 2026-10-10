@@ -90,6 +90,7 @@ struct InvoiceListView: View {
                     action: dismiss.callAsFunction
                 )
             }
+            .sharedBackgroundVisibility(.hidden)
         }
     }
 
@@ -204,6 +205,7 @@ private struct InvoiceDetailView: View {
                     action: dismiss.callAsFunction
                 )
             }
+            .sharedBackgroundVisibility(.hidden)
         }
         .alert("Reminder simulated", isPresented: $showsReminderConfirmation) {
             Button("Done", role: .cancel) { }

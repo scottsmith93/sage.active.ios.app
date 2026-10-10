@@ -373,6 +373,8 @@ public struct SageCarbonIconView: View {
 }
 
 /// Standard icon-only toolbar action with a Carbon glyph and an accessible text label.
+/// Call sites hide the toolbar's shared background so this explicit circular glass style
+/// remains the control's only background.
 public struct SageCarbonToolbarButton: View {
     public let icon: SageCarbonIcon
     public let accessibilityLabel: String

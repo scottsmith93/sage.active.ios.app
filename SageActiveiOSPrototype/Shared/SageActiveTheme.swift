@@ -78,6 +78,8 @@ enum SageActiveTheme {
     static let secondaryUtility10 = Theme.GRColorPalette.secondaryAccent10.color
     /// Utility / Secondary / 025, used for the speech recording waveform.
     static let secondaryUtility25 = Theme.GRColorPalette.secondaryAccent25.color
+    /// Utility / Secondary / 075, used for a clearly visible live waveform.
+    static let secondaryUtility75 = Theme.GRColorPalette.secondaryAccent75.color
     static let selectedPillBackground = Theme.GRColorPalette.primaryAccent10.color
     static let selectedPillText = Theme.GRColorPalette.primaryAccent100.color
     static let selectedPillStroke = Theme.GRColorPalette.primaryAccent100.color

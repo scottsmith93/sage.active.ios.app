@@ -179,6 +179,7 @@ struct SalesReminderFlowSheet: View {
                     action: dismiss.callAsFunction
                 )
             }
+            .sharedBackgroundVisibility(.hidden)
             ToolbarItem(placement: .confirmationAction) {
                 Button("Next") { step = .compose }
                     .disabled(selectedIDs.isEmpty)
@@ -191,6 +192,7 @@ struct SalesReminderFlowSheet: View {
                     action: dismiss.callAsFunction
                 )
             }
+            .sharedBackgroundVisibility(.hidden)
         }
     }
 

@@ -83,6 +83,7 @@ struct BankBalanceView: View {
                     action: dismiss.callAsFunction
                 )
             }
+            .sharedBackgroundVisibility(.hidden)
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showsSettings = true

@@ -12,13 +12,61 @@ private enum SpeechInvoicePhase: Equatable {
     case idle
     case listening
     case transcribing
-    case draft
     case permissionDenied
+}
+
+/// Preserves the native sheet material independently from its decorative border. Keeping
+/// this as the presentation background lets the system own the sheet's physical shape.
+private struct CopilotSheetSurface: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            // Ultra-thin material keeps the content beneath the sheet visible as
+            // a restrained blur instead of resolving to an opaque-looking panel.
+            Rectangle()
+                .fill(.ultraThinMaterial)
+
+            Group {
+                if colorScheme == .dark {
+                    SageActiveTheme.secondaryUtility10
+                } else {
+                    SageActiveTheme.cardBackground
+                }
+            }
+            .opacity(colorScheme == .dark ? 0.68 : 0.58)
+        }
+        // Apply 80% to the complete material-and-tint composite. Applying it only
+        // to the tint left the material beneath fully filled and visually solid.
+        .compositingGroup()
+        .opacity(0.80)
+    }
+}
+
+/// Draws the Copilot stroke inside the sheet content instead of relying on the presentation
+/// background's clipping path. iOS 26 and iOS 27 clip custom presentation backgrounds
+/// differently; a concentric content overlay remains aligned with the device on both.
+private struct AnimatedCopilotSheetBorder: View {
+    private let lineWidth: CGFloat = 2
+
+    var body: some View {
+        CopilotGradientStroke(
+            shape: ConcentricRectangle(
+                uniformTopCorners: .concentric(minimum: 30),
+                uniformBottomCorners: .concentric
+            ),
+            lineWidth: lineWidth,
+            opacity: 0.5
+        )
+        // Keep the full stroke inside the system presentation boundary.
+        .padding(lineWidth / 2)
+        .ignoresSafeArea()
+    }
 }
 
 @MainActor
 private final class SpeechInvoiceRecorder: NSObject, ObservableObject {
-    @Published private(set) var levels = Array(repeating: CGFloat(0.16), count: 48)
+    @Published private(set) var levels = Array(repeating: CGFloat(0.16), count: 54)
     @Published private(set) var elapsed: TimeInterval = 0
     @Published private(set) var reachedLimit = false
 
@@ -53,7 +101,7 @@ private final class SpeechInvoiceRecorder: NSObject, ObservableObject {
             self.recorder = recorder
             elapsed = 0
             reachedLimit = false
-            levels = Array(repeating: CGFloat(0.16), count: 48)
+            levels = Array(repeating: CGFloat(0.16), count: 54)
             startMonitoring()
             return true
         } catch {
@@ -73,7 +121,7 @@ private final class SpeechInvoiceRecorder: NSObject, ObservableObject {
         stop()
         elapsed = 0
         reachedLimit = false
-        levels = Array(repeating: CGFloat(0.16), count: 48)
+        levels = Array(repeating: CGFloat(0.16), count: 54)
     }
 
     private func startMonitoring() {
@@ -104,16 +152,64 @@ private final class SpeechInvoiceRecorder: NSObject, ObservableObject {
     }
 }
 
+/// Vertical measurements for the two speech-sheet states. Every app-owned value
+/// sits on the 8pt spacing grid; the native navigation bar remains system-owned.
+private enum SpeechInvoiceLayout {
+    static let toolbarRegion: CGFloat = 56
+    static let contentTopPadding: CGFloat = 16
+    static let exampleRegion: CGFloat = 112
+    static let controlSpacing: CGFloat = 24
+    static let controlHeight: CGFloat = 48
+    static let disclaimerSpacing: CGFloat = 24
+    static let disclaimerLineRegion: CGFloat = 16
+    static let bottomPadding: CGFloat = 24
+    static let loaderHeight: CGFloat = 72
+    static let loaderSpacing: CGFloat = 16
+    static let loaderLabelRegion: CGFloat = 24
+
+    static let entryContentHeight = exampleRegion + controlSpacing + controlHeight
+    static let disclaimerRegion = disclaimerLineRegion + bottomPadding
+    static let loaderRegion = loaderHeight + loaderSpacing + loaderLabelRegion
+
+    static let expandedSheetHeight =
+        toolbarRegion
+        + contentTopPadding
+        + entryContentHeight
+        + disclaimerSpacing
+        + disclaimerRegion
+
+    static let preparingSheetHeight =
+        toolbarRegion
+        + contentTopPadding
+        + loaderRegion
+        + disclaimerSpacing
+        + disclaimerRegion
+}
+
 struct SpeechToInvoiceView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+
+    @Namespace private var recordingGlassNamespace
 
     @StateObject private var recorder = SpeechInvoiceRecorder()
     @State private var phase: SpeechInvoicePhase = .idle
-    @State private var selectedDetent: PresentationDetent = .fraction(0.5)
+    @State private var recordingControlsVisible = false
+    @State private var microphoneVisible = true
+    @State private var entryContentVisible = true
+    @State private var loadingContentVisible = false
+    @State private var selectedDetent: PresentationDetent = .height(
+        SpeechInvoiceLayout.expandedSheetHeight
+    )
+    @State private var allowedDetents: Set<PresentationDetent> = [
+        .height(SpeechInvoiceLayout.expandedSheetHeight)
+    ]
     @State private var loadingMessage = "Transcribing"
     @State private var loadingPlaybackMode = LottiePlaybackMode.paused(at: .currentFrame)
     @State private var showsPrivacyNotice = false
+    @State private var showsDraftInvoice = false
+    @State private var recordingRevealTask: Task<Void, Never>?
     @State private var transcriptionTask: Task<Void, Never>?
 
     private let loadingMessages = [
@@ -131,46 +227,67 @@ struct SpeechToInvoiceView: View {
                 .navigationTitle("Speech to Invoice")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button(action: dismiss.callAsFunction) {
-                            SageCarbonIconView(
-                                .close,
-                                pointSize: 20,
-                                color: SageActiveTheme.primaryText
-                            )
-                        }
-                        .buttonStyle(.glass)
-                        .buttonBorderShape(.circle)
-                        .accessibilityLabel("Close Speech to Invoice")
+                    ToolbarItem(placement: .cancellationAction) {
+                        SageCarbonToolbarButton(
+                            icon: .cross,
+                            accessibilityLabel: "Close Speech to Invoice",
+                            action: dismiss.callAsFunction
+                        )
+                        .shadow(color: glassControlShadow, radius: 8, y: 2)
                     }
                     .sharedBackgroundVisibility(.hidden)
                 }
                 .toolbarBackground(.hidden, for: .navigationBar)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.32), value: phase)
+        }
+        .overlay {
+            if phase != .permissionDenied {
+                // The recording UI and disclaimer share one bottom-anchored stack,
+                // making their 24pt relationship explicit. Collapsing the recording
+                // region cannot move the disclaimer away from its fixed bottom inset.
+                VStack(spacing: SpeechInvoiceLayout.disclaimerSpacing) {
+                    recordingEntryContent
+                        .frame(
+                            height: entryContentVisible
+                                ? SpeechInvoiceLayout.entryContentHeight
+                                : 0,
+                            alignment: .bottom
+                        )
+                        .opacity(entryContentVisible ? 1 : 0)
+                        .allowsHitTesting(entryContentVisible)
+                        .accessibilityHidden(!entryContentVisible)
+
+                    privacyNotice
+                }
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity,
+                        alignment: .bottom
+                    )
+                    .padding(.bottom, SpeechInvoiceLayout.bottomPadding)
+                    .ignoresSafeArea(.container, edges: .bottom)
+            }
+        }
+        .overlay {
+            AnimatedCopilotSheetBorder()
         }
         .presentationDetents(
-            [.fraction(0.28), .fraction(0.5), .large],
+            allowedDetents,
             selection: $selectedDetent
         )
         .presentationDragIndicator(.hidden)
         .presentationBackground {
-            ContainerRelativeShape()
-                .fill(.regularMaterial)
-                .overlay {
-                    ContainerRelativeShape()
-                        .inset(by: 1)
-                        .stroke(
-                            SageActiveTheme.speechButtonGradient.opacity(0.5),
-                            lineWidth: 2
-                        )
-                }
+            CopilotSheetSurface()
         }
         .interactiveDismissDisabled(phase == .listening)
         .sheet(isPresented: $showsPrivacyNotice) {
             SpeechPrivacyNoticeSheet()
         }
+        .sheet(isPresented: $showsDraftInvoice, onDismiss: dismiss.callAsFunction) {
+            SpeechDraftInvoiceSheet()
+        }
         .onDisappear {
             recorder.stop()
+            recordingRevealTask?.cancel()
             transcriptionTask?.cancel()
         }
     }
@@ -178,13 +295,9 @@ struct SpeechToInvoiceView: View {
     @ViewBuilder
     private var content: some View {
         switch phase {
-        case .idle, .listening:
-            recordingEntryContent
+        case .idle, .listening, .transcribing:
+            recordingWorkflowContent
                 .transition(.identity)
-        case .transcribing:
-            transcribingContent.transition(speechContentTransition)
-        case .draft:
-            draftInvoiceContent.transition(speechContentTransition)
         case .permissionDenied:
             permissionDeniedContent.transition(speechContentTransition)
         }
@@ -196,130 +309,172 @@ struct SpeechToInvoiceView: View {
             : .opacity.combined(with: .scale(scale: 0.98, anchor: .center))
     }
 
+    /// The preparing content occupies the area above the persistent bottom overlay.
+    /// Recording content lives in that overlay so its spacing to the disclaimer is
+    /// exact instead of being inferred from spare space in a fixed-height sheet.
+    private var recordingWorkflowContent: some View {
+        ZStack {
+            if phase == .transcribing {
+                transcribingStatusContent
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity,
+                        alignment: .center
+                    )
+                    .opacity(loadingContentVisible ? 1 : 0)
+            }
+        }
+        .padding(.top, SpeechInvoiceLayout.contentTopPadding)
+        .padding(
+            .bottom,
+            SpeechInvoiceLayout.disclaimerSpacing + SpeechInvoiceLayout.disclaimerRegion
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private var recordingEntryContent: some View {
         VStack(spacing: 0) {
-            Spacer(minLength: 16)
-
             exampleContent
+                .frame(minHeight: SpeechInvoiceLayout.exampleRegion)
 
-            Spacer(minLength: 12)
-
-            if phase == .listening {
-                listeningControls
-                    .transition(
-                        reduceMotion
-                            ? .identity
-                            : .opacity.combined(with: .scale(scale: 0.98, anchor: .bottom))
-                    )
-            } else {
-                idleControls
-                    .transition(
-                        reduceMotion
-                            ? .identity
-                            : .opacity.combined(with: .scale(scale: 0.98, anchor: .bottom))
-                    )
-            }
-
-            privacyNotice
+            recordingControl
+                .padding(.top, SpeechInvoiceLayout.controlSpacing)
         }
-        .padding(.bottom, 24)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.32), value: phase)
+        .frame(maxWidth: .infinity)
+        .frame(height: SpeechInvoiceLayout.entryContentHeight, alignment: .bottom)
     }
 
-    private var idleControls: some View {
-        HStack(spacing: 16) {
-            Text("Tap to start creating")
-                .font(.subheadline)
-                .foregroundStyle(SageActiveTheme.primaryText)
+    private var recordingControl: some View {
+        GlassEffectContainer(spacing: 0) {
+            ZStack {
+                if phase == .listening {
+                    recordingPanel
+                        .frame(maxWidth: 346, minHeight: 48, maxHeight: 48)
+                        .glassEffect(.regular, in: Capsule())
+                        .shadow(color: glassControlShadow, radius: 8, y: 2)
+                        .glassEffectID("speech-recording-control", in: recordingGlassNamespace)
+                        .glassEffectTransition(.matchedGeometry)
+                } else {
+                    Button(action: startRecording) {
+                        Color.clear
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.glassProminent)
+                    .buttonBorderShape(.circle)
+                    .tint(SageActiveTheme.brand)
+                    .controlSize(.large)
+                    .frame(width: 48, height: 48)
+                    .shadow(color: glassControlShadow, radius: 8, y: 2)
+                    .glassEffectID("speech-recording-control", in: recordingGlassNamespace)
+                    .glassEffectTransition(.matchedGeometry)
+                    .accessibilityLabel("Start recording")
+                }
 
-            Spacer(minLength: 8)
-
-            SpeechCircleButton(
-                icon: .microphone,
-                accessibilityLabel: "Start recording",
-                style: .outline,
-                action: startRecording
+            }
+            .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48)
+        }
+        .frame(height: 48)
+        .overlay {
+            // Keep the icon outside the glass rendering group. Liquid Glass is
+            // composited after its children, so an icon inside the container can
+            // be obscured by the prominent tint. This fixed overlay participates
+            // only in an opacity animation and never moves with the glass morph.
+            SageCarbonIconView(
+                .microphone,
+                pointSize: 20,
+                color: colorScheme == .light
+                    ? SageActiveTheme.white
+                    : SageActiveTheme.primaryActionForeground
             )
+            .frame(width: 20, height: 20)
+            .opacity(phase == .idle && microphoneVisible ? 1 : 0)
+            .allowsHitTesting(false)
         }
-        .padding(.horizontal, SageActiveTheme.pageSpacing)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 24)
     }
 
-    private var listeningControls: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Label {
-                    Text(recorder.reachedLimit ? "Recording complete" : "Listening")
-                } icon: {
-                    Circle()
-                        .fill(SageActiveTheme.negativeVisual)
-                        .frame(width: 8, height: 8)
-                }
+    private var recordingPanel: some View {
+        HStack(spacing: 0) {
+            Button(action: discardRecording) {
+                SageCarbonIconView(
+                    .delete,
+                    pointSize: 20,
+                    color: SageActiveTheme.negativeVisual
+                )
+                .frame(width: 40, height: 40)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Discard recording")
+
+            SpeechWaveform(
+                levels: recorder.levels,
+                reduceMotion: reduceMotion
+            )
+            .frame(width: 216, height: 32)
+
+            recordingTimer
+                .padding(.leading, 8)
+
+            Button(action: sendRecording) {
+                SageCarbonIconView(
+                    .arrowRight,
+                    pointSize: 20,
+                    color: SageActiveTheme.white
+                )
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.circle)
+            .tint(SageActiveTheme.brand)
+            .controlSize(.regular)
+            .frame(width: 40, height: 40)
+            .padding(.leading, 8)
+            .accessibilityLabel("Send recording")
+        }
+        .padding(.leading, 6)
+        .padding(.trailing, 4)
+        .opacity(recordingControlsVisible ? 1 : 0)
+        .scaleEffect(recordingControlsVisible ? 1 : 0.98)
+        .allowsHitTesting(recordingControlsVisible)
+        .accessibilityHidden(!recordingControlsVisible)
+        .animation(
+            reduceMotion ? nil : .easeOut(duration: 0.18),
+            value: recordingControlsVisible
+        )
+    }
+
+    private var recordingTimer: some View {
+        Text(timerText)
+            .font(.footnote.monospacedDigit())
+            .foregroundStyle(SageActiveTheme.primaryText)
+            .frame(width: 24, alignment: .leading)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(recorder.reachedLimit ? "Recording complete" : "Recording")
+            .accessibilityValue(timerText)
+    }
+
+    private var glassControlShadow: Color {
+        .black.opacity(colorScheme == .dark ? 0.30 : 0.14)
+    }
+
+    private var transcribingStatusContent: some View {
+        VStack(spacing: 16) {
+            LottieView {
+                try await DotLottieFile.named("loader-sparkle-loop-v6a")
+            } placeholder: {
+                Color.clear
+            }
+            .playbackMode(loadingPlaybackMode)
+            .resizable()
+            .frame(width: 72, height: 72)
+            .accessibilityLabel("Preparing invoice")
+
+            Text(loadingMessage)
                 .font(.subheadline)
                 .foregroundStyle(SageActiveTheme.primaryText)
-
-                Spacer()
-
-                Text(timerText)
-                    .font(.footnote.monospacedDigit())
-                    .foregroundStyle(SageActiveTheme.primaryText)
-            }
-
-            // Keep the waveform's breathing room fixed at 16pt on both sides.
-            HStack(spacing: SageActiveTheme.pageSpacing) {
-                SpeechCircleButton(
-                    icon: .delete,
-                    accessibilityLabel: "Discard recording",
-                    style: .outline,
-                    action: discardRecording
-                )
-
-                SpeechWaveform(
-                    levels: recorder.levels,
-                    reduceMotion: reduceMotion
-                )
-                .frame(maxWidth: .infinity)
-
-                SpeechCircleButton(
-                    icon: .arrowRight,
-                    accessibilityLabel: "Send recording",
-                    style: .primary,
-                    action: sendRecording
-                )
-            }
+                .contentTransition(.opacity)
+                .animation(reduceMotion ? nil : .smooth(duration: 0.35), value: loadingMessage)
         }
         .padding(.horizontal, SageActiveTheme.pageSpacing)
-        .padding(.bottom, 12)
-    }
-
-    private var transcribingContent: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
-            VStack(spacing: 12) {
-                LottieView {
-                    try await DotLottieFile.named("loader-sparkle-loop-v6a")
-                } placeholder: {
-                    Color.clear
-                }
-                .playbackMode(loadingPlaybackMode)
-                .resizable()
-                .frame(width: 72, height: 72)
-                .accessibilityLabel("Preparing invoice")
-
-                Text(loadingMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(SageActiveTheme.primaryText)
-                    .contentTransition(.opacity)
-                    .animation(reduceMotion ? nil : .smooth(duration: 0.35), value: loadingMessage)
-            }
-
-            Spacer()
-
-            privacyNotice
-        }
-        .padding(.horizontal, SageActiveTheme.pageSpacing)
-        .padding(.bottom, 24)
         .onAppear {
             loadingPlaybackMode = reduceMotion
                 ? .paused(at: .currentFrame)
@@ -328,10 +483,6 @@ struct SpeechToInvoiceView: View {
         .onDisappear {
             loadingPlaybackMode = .paused(at: .currentFrame)
         }
-    }
-
-    private var draftInvoiceContent: some View {
-        SpeechDraftInvoiceContent()
     }
 
     private var permissionDeniedContent: some View {
@@ -350,24 +501,26 @@ struct SpeechToInvoiceView: View {
     }
 
     private var exampleContent: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 16) {
             Image("speech-copilot-logo")
                 .resizable()
                 .interpolation(.high)
                 .frame(width: 40, height: 40)
                 .accessibilityHidden(true)
 
-            Text("To get started, say something like…")
-                .font(.subheadline.italic())
-                .foregroundStyle(SageActiveTheme.primaryText)
+            VStack(spacing: 8) {
+                Text("To get started, say something like…")
+                    .font(.caption2.italic())
+                    .foregroundStyle(SageActiveTheme.primaryText)
 
-            Text("“Create a sales invoice for Blue Moon Cafe. Add a crate of bottled water and a box of House Blend Coffee”")
-                .font(.body.italic())
-                .foregroundStyle(SageActiveTheme.primaryText)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+                Text("“Create a sales invoice for Blue Moon Cafe. Add a crate of bottled water and a box of House Blend Coffee”")
+                    .font(.caption.italic())
+                    .foregroundStyle(SageActiveTheme.primaryText)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding(.horizontal, SageActiveTheme.pageSpacing)
+        .padding(.horizontal, 16)
         .transition(.opacity)
     }
 
@@ -386,44 +539,158 @@ struct SpeechToInvoiceView: View {
         }
         .font(.caption2)
         .multilineTextAlignment(.center)
+        .padding(.horizontal, 32)
     }
 
     private var timerText: String {
         let remaining = max(0, Int(30 - recorder.elapsed.rounded(.down)))
-        return String(format: "00:%02d", remaining)
+        return "\(remaining)s"
     }
 
     private func startRecording() {
         Task {
             let started = await recorder.start()
             if started {
-                animate {
-                    phase = .listening
-                    selectedDetent = .fraction(0.5)
-                }
+                beginListeningTransition()
             } else {
                 animate { phase = .permissionDenied }
             }
         }
     }
 
+    private func beginListeningTransition() {
+        recordingRevealTask?.cancel()
+        recordingControlsVisible = false
+
+        if reduceMotion {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                microphoneVisible = false
+                phase = .listening
+                selectedDetent = .height(SpeechInvoiceLayout.expandedSheetHeight)
+                recordingControlsVisible = true
+            }
+            return
+        }
+
+        withAnimation(.easeOut(duration: 0.12)) {
+            microphoneVisible = false
+        }
+        withAnimation(.smooth(duration: 0.38)) {
+            phase = .listening
+            selectedDetent = .height(SpeechInvoiceLayout.expandedSheetHeight)
+        }
+
+        recordingRevealTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(220))
+            guard !Task.isCancelled, phase == .listening else { return }
+            withAnimation(.easeOut(duration: 0.18)) {
+                recordingControlsVisible = true
+            }
+        }
+    }
+
     private func discardRecording() {
-        recorder.discard()
-        animate {
-            phase = .idle
-            selectedDetent = .fraction(0.5)
+        // Freeze the current waveform and timer while the controls dissolve. Resetting
+        // them before the fade completes creates a visible flash back to the idle data.
+        recorder.stop()
+        recordingRevealTask?.cancel()
+
+        if reduceMotion {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                recorder.discard()
+                recordingControlsVisible = false
+                microphoneVisible = true
+                phase = .idle
+                selectedDetent = .height(SpeechInvoiceLayout.expandedSheetHeight)
+            }
+            return
+        }
+
+        // Mirror the forward sequence: dissolve the foreground controls, then use
+        // the same 380ms liquid-glass morph back to the circular record control.
+        withAnimation(.easeIn(duration: 0.12)) {
+            recordingControlsVisible = false
+        }
+
+        recordingRevealTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled, phase == .listening else { return }
+            recorder.discard()
+            microphoneVisible = false
+            withAnimation(.smooth(duration: 0.38)) {
+                phase = .idle
+                selectedDetent = .height(SpeechInvoiceLayout.expandedSheetHeight)
+            }
+
+            // Reveal the icon immediately after the glass has returned to its
+            // circular resting shape. Only opacity changes, so it cannot slide.
+            try? await Task.sleep(for: .milliseconds(380))
+            guard !Task.isCancelled, phase == .idle else { return }
+            withAnimation(.easeOut(duration: 0.10)) {
+                microphoneVisible = true
+            }
         }
     }
 
     private func sendRecording() {
         recorder.stop()
-        animate {
-            phase = .transcribing
-            selectedDetent = .fraction(0.28)
-        }
-
+        recordingRevealTask?.cancel()
         transcriptionTask?.cancel()
         transcriptionTask = Task { @MainActor in
+            if reduceMotion {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    recordingControlsVisible = false
+                    entryContentVisible = false
+                    phase = .transcribing
+                    loadingContentVisible = true
+                    allowedDetents = [.height(SpeechInvoiceLayout.preparingSheetHeight)]
+                    selectedDetent = .height(SpeechInvoiceLayout.preparingSheetHeight)
+                }
+            } else {
+                // A selection animates only when both source and destination are
+                // registered detents. Add the compact detent without changing height,
+                // then animate selection and opacity together on the next update.
+                var preparationTransaction = Transaction()
+                preparationTransaction.disablesAnimations = true
+                withTransaction(preparationTransaction) {
+                    allowedDetents = [
+                        .height(SpeechInvoiceLayout.expandedSheetHeight),
+                        .height(SpeechInvoiceLayout.preparingSheetHeight)
+                    ]
+                }
+
+                // Give SwiftUI one display frame to commit both detents to the
+                // presentation controller. A task yield alone can resume before
+                // that commit and makes the following selection change snap.
+                try? await Task.sleep(for: .milliseconds(16))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeIn(duration: 0.30)) {
+                    recordingControlsVisible = false
+                    entryContentVisible = false
+                    selectedDetent = .height(SpeechInvoiceLayout.preparingSheetHeight)
+                }
+
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
+                // Lock the presentation back to one detent after the native resize,
+                // so the user cannot manually change the sheet height.
+                var completionTransaction = Transaction()
+                completionTransaction.disablesAnimations = true
+                withTransaction(completionTransaction) {
+                    allowedDetents = [.height(SpeechInvoiceLayout.preparingSheetHeight)]
+                    phase = .transcribing
+                }
+                withAnimation(.easeIn(duration: 0.30)) {
+                    loadingContentVisible = true
+                }
+            }
+
             for message in loadingMessages {
                 guard !Task.isCancelled else { return }
                 loadingMessage = message
@@ -433,10 +700,18 @@ struct SpeechToInvoiceView: View {
             }
 
             guard !Task.isCancelled else { return }
-            animate {
-                phase = .draft
-                selectedDetent = .large
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.20)) {
+                loadingContentVisible = false
             }
+
+            if !reduceMotion {
+                try? await Task.sleep(for: .milliseconds(200))
+                guard !Task.isCancelled else { return }
+            }
+
+            // The prepared document uses its own standard native sheet. The
+            // Copilot border belongs only to the recording and preparation flow.
+            showsDraftInvoice = true
         }
     }
 
@@ -446,7 +721,7 @@ struct SpeechToInvoiceView: View {
             transaction.disablesAnimations = true
             withTransaction(transaction, changes)
         } else {
-            withAnimation(.easeInOut(duration: 0.32), changes)
+            withAnimation(.smooth(duration: 0.38), changes)
         }
     }
 }
@@ -462,17 +737,13 @@ private struct SpeechPrivacyNoticeSheet: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            SageCarbonIconView(
-                                .close,
-                                pointSize: 20,
-                                color: SageActiveTheme.primaryText
-                            )
-                        }
-                        .accessibilityLabel("Close privacy notice")
+                        SageCarbonToolbarButton(
+                            icon: .cross,
+                            accessibilityLabel: "Close privacy notice",
+                            action: dismiss.callAsFunction
+                        )
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
                 .toolbarBackground(.hidden, for: .navigationBar)
         }
@@ -553,7 +824,7 @@ private struct SpeechWaveform: View {
         HStack(spacing: 2) {
             ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
                 Capsule()
-                    .fill(SageActiveTheme.secondaryUtility25)
+                    .fill(SageActiveTheme.secondaryUtility75)
                     .frame(width: 2, height: max(4, level * 32))
             }
         }
@@ -561,53 +832,5 @@ private struct SpeechWaveform: View {
         .clipped()
         .animation(reduceMotion ? nil : .linear(duration: 0.08), value: levels)
         .accessibilityLabel("Live recording waveform")
-    }
-}
-
-private struct SpeechCircleButton: View {
-    enum Style {
-        case outline
-        case primary
-    }
-
-    let icon: SageCarbonIcon
-    let accessibilityLabel: String
-    let style: Style
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            SageCarbonIconView(
-                icon,
-                pointSize: 20,
-                color: style == .primary ? SageActiveTheme.white : SageActiveTheme.primaryText
-            )
-        }
-        .buttonStyle(.plain)
-        .frame(width: 40, height: 40)
-        .background(background)
-        .clipShape(Circle())
-        .overlay { border }
-        .accessibilityLabel(accessibilityLabel)
-    }
-
-    @ViewBuilder
-    private var background: some View {
-        switch style {
-        case .outline:
-            Color.clear.glassEffect(.regular.interactive(), in: Circle())
-        case .primary:
-            SageActiveTheme.brand
-        }
-    }
-
-    @ViewBuilder
-    private var border: some View {
-        switch style {
-        case .outline:
-            Circle().stroke(SageActiveTheme.brand, lineWidth: 1.5)
-        case .primary:
-            EmptyView()
-        }
     }
 }

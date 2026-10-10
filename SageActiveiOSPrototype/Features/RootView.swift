@@ -9,6 +9,11 @@ private enum AppTab: Hashable {
 }
 
 struct RootView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    @Namespace private var speechInvoiceTransitionNamespace
+
     @State private var store = PrototypeStore()
     @State private var selectedTab: AppTab = ProcessInfo.processInfo.arguments.contains("-showSales") || ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-showCreateInvoice") }) ? .sales : .dashboard
     @State private var salesDocumentType: SalesDocumentType = {
@@ -19,6 +24,8 @@ struct RootView: View {
     }()
     @State private var showsSpeechToInvoice = false
     @State private var tabBarFrame: CGRect = .zero
+
+    private let speechInvoiceTransitionID = "speech-to-invoice"
 
     var body: some View {
         Group {
@@ -93,14 +100,18 @@ struct RootView: View {
                 }
                 .tabBarMinimizeBehavior(.never)
                 .scrollEdgeEffectStyle(.soft, for: .bottom)
-                .sheet(isPresented: $showsSpeechToInvoice) {
-                    SpeechToInvoiceView()
-                }
                 .background {
                     TabBarFrameReader(frame: $tabBarFrame)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .allowsHitTesting(false)
                 }
+                .blur(
+                    radius: showsSpeechToInvoice && !reduceTransparency ? 2 : 0
+                )
+                .animation(
+                    reduceMotion ? nil : .easeInOut(duration: 0.22),
+                    value: showsSpeechToInvoice
+                )
                 .overlay {
                     GeometryReader { proxy in
                         if selectedTab == .sales {
@@ -113,9 +124,22 @@ struct RootView: View {
                                     ? proxy.size.height - 120
                                     : tabBarFrame.minY - 24 - 28
                             )
+                            .matchedTransitionSource(
+                                id: speechInvoiceTransitionID,
+                                in: speechInvoiceTransitionNamespace
+                            )
                         }
                     }
                     .allowsHitTesting(true)
+                }
+                .sheet(isPresented: $showsSpeechToInvoice) {
+                    SpeechToInvoiceView()
+                        .navigationTransition(
+                            .zoom(
+                                sourceID: speechInvoiceTransitionID,
+                                in: speechInvoiceTransitionNamespace
+                            )
+                        )
                 }
             } else {
                 NavigationStack {
@@ -180,8 +204,8 @@ private struct SpeechInvoiceButtonStyle: ButtonStyle {
         .frame(width: 56, height: 56)
         .glassEffect(.regular.interactive(), in: Circle())
         .overlay {
-            Circle()
-                .stroke(SageActiveTheme.speechButtonGradient, lineWidth: 1.5)
+            CopilotGradientStroke(shape: Circle())
+                .padding(1)
                 .opacity(configuration.isPressed ? 0 : 1)
         }
         .scaleEffect(configuration.isPressed ? 0.94 : 1)

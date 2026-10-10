@@ -1,5 +1,32 @@
 import SwiftUI
 
+/// The prepared invoice is independent from the Copilot recording presentation.
+/// This wrapper intentionally uses a standard native sheet with no gradient border.
+struct SpeechDraftInvoiceSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            SpeechDraftInvoiceContent()
+                .background(SageActiveTheme.pageBackground)
+                .navigationTitle("Sales invoice")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        SageCarbonToolbarButton(
+                            icon: .cross,
+                            accessibilityLabel: "Close sales invoice",
+                            action: dismiss.callAsFunction
+                        )
+                    }
+                    .sharedBackgroundVisibility(.hidden)
+                }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
+    }
+}
+
 /// The fictional invoice produced by the speech flow. It deliberately uses the same
 /// invoice data structures as the create flow, but presents a reviewable draft rather
 /// than sending the user back to the data-entry form.
@@ -69,11 +96,13 @@ struct SpeechDraftInvoiceContent: View {
     }
 
     private var finaliseButton: some View {
-        Button("Finalise") { }
+        Button { } label: {
+            Text("Finalise")
+                .frame(maxWidth: .infinity)
+        }
             .buttonStyle(.borderedProminent)
             .tint(SageActiveTheme.brand)
             .foregroundStyle(SageActiveTheme.primaryActionForeground)
-            .frame(maxWidth: .infinity)
             .controlSize(.large)
             .accessibilityHint("Prototype only. No document will be posted.")
     }

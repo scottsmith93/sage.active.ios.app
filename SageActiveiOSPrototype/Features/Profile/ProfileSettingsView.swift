@@ -70,6 +70,7 @@ struct ProfileSettingsView: View {
                     dismiss()
                 }
             }
+            .sharedBackgroundVisibility(.hidden)
         }
     }
 
