@@ -15,11 +15,31 @@ private enum SpeechInvoicePhase: Equatable {
     case permissionDenied
 }
 
+private enum SpeechInvoiceDemoScenario: String, CaseIterable, Identifiable {
+    case normal = "Normal flow"
+    case noCustomer = "No customer identified"
+    case multipleMatches = "Multiple matches found"
+    case noProducts = "No products identified"
+
+    var id: Self { self }
+
+    var detail: String {
+        switch self {
+        case .normal:
+            "Prepare the draft invoice as usual."
+        case .noCustomer:
+            "Ask the user to select or add the customer."
+        case .multipleMatches:
+            "Show potential matches for “Moon cafe”."
+        case .noProducts:
+            "Open the invoice form with the product list ready."
+        }
+    }
+}
+
 /// Preserves the native sheet material independently from its decorative border. Keeping
 /// this as the presentation background lets the system own the sheet's physical shape.
 private struct CopilotSheetSurface: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
         ZStack {
             // Ultra-thin material keeps the content beneath the sheet visible as
@@ -27,36 +47,25 @@ private struct CopilotSheetSurface: View {
             Rectangle()
                 .fill(.ultraThinMaterial)
 
-            Group {
-                if colorScheme == .dark {
-                    SageActiveTheme.secondaryUtility10
-                } else {
-                    SageActiveTheme.cardBackground
-                }
-            }
-            .opacity(colorScheme == .dark ? 0.68 : 0.58)
+            // Use the app background role as the sheet tint, but leave enough
+            // transparency for the native glass material beneath to read through.
+            SageActiveTheme.pageBackground
+                .opacity(0.80)
         }
-        // Apply 80% to the complete material-and-tint composite. Applying it only
-        // to the tint left the material beneath fully filled and visually solid.
-        .compositingGroup()
-        .opacity(0.80)
     }
 }
 
 /// Draws the Copilot stroke inside the sheet content instead of relying on the presentation
-/// background's clipping path. iOS 26 and iOS 27 clip custom presentation backgrounds
-/// differently; a concentric content overlay remains aligned with the device on both.
+/// background's clipping path. The system supplies the presentation container's corner
+/// geometry, so the stroke remains concentric with both the sheet and the current device.
 private struct AnimatedCopilotSheetBorder: View {
     private let lineWidth: CGFloat = 2
 
     var body: some View {
         CopilotGradientStroke(
-            shape: ConcentricRectangle(
-                uniformTopCorners: .concentric(minimum: 30),
-                uniformBottomCorners: .concentric
-            ),
+            shape: ConcentricRectangle(),
             lineWidth: lineWidth,
-            opacity: 0.5
+            opacity: 1
         )
         // Keep the full stroke inside the system presentation boundary.
         .padding(lineWidth / 2)
@@ -155,7 +164,9 @@ private final class SpeechInvoiceRecorder: NSObject, ObservableObject {
 /// Vertical measurements for the two speech-sheet states. Every app-owned value
 /// sits on the 8pt spacing grid; the native navigation bar remains system-owned.
 private enum SpeechInvoiceLayout {
-    static let toolbarRegion: CGFloat = 56
+    static let toolbarControlHeight: CGFloat = 48
+    static let toolbarTopPadding: CGFloat = 16
+    static let toolbarRegion = toolbarControlHeight + toolbarTopPadding
     static let contentTopPadding: CGFloat = 16
     static let exampleRegion: CGFloat = 112
     static let controlSpacing: CGFloat = 24
@@ -191,6 +202,8 @@ struct SpeechToInvoiceView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
 
+    let onOpenInvoiceCreation: (InvoiceCustomer) -> Void
+
     @Namespace private var recordingGlassNamespace
 
     @StateObject private var recorder = SpeechInvoiceRecorder()
@@ -209,8 +222,16 @@ struct SpeechToInvoiceView: View {
     @State private var loadingPlaybackMode = LottiePlaybackMode.paused(at: .currentFrame)
     @State private var showsPrivacyNotice = false
     @State private var showsDraftInvoice = false
+    @State private var showsDemoSettings = false
+    @State private var demoScenario: SpeechInvoiceDemoScenario = .normal
+    @State private var customerResolutionScenario: SpeechInvoiceDemoScenario?
+    @State private var resolvedCustomer = CreateInvoiceFixtures.customers[0]
     @State private var recordingRevealTask: Task<Void, Never>?
     @State private var transcriptionTask: Task<Void, Never>?
+
+    init(onOpenInvoiceCreation: @escaping (InvoiceCustomer) -> Void = { _ in }) {
+        self.onOpenInvoiceCreation = onOpenInvoiceCreation
+    }
 
     private let loadingMessages = [
         "Transcribing",
@@ -224,20 +245,10 @@ struct SpeechToInvoiceView: View {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.clear)
-                .navigationTitle("Speech to Invoice")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        SageCarbonToolbarButton(
-                            icon: .cross,
-                            accessibilityLabel: "Close Speech to Invoice",
-                            action: dismiss.callAsFunction
-                        )
-                        .shadow(color: glassControlShadow, radius: 8, y: 2)
-                    }
-                    .sharedBackgroundVisibility(.hidden)
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    speechSheetToolbar
                 }
-                .toolbarBackground(.hidden, for: .navigationBar)
+                .toolbar(.hidden, for: .navigationBar)
         }
         .overlay {
             if phase != .permissionDenied {
@@ -283,7 +294,17 @@ struct SpeechToInvoiceView: View {
             SpeechPrivacyNoticeSheet()
         }
         .sheet(isPresented: $showsDraftInvoice, onDismiss: dismiss.callAsFunction) {
-            SpeechDraftInvoiceSheet()
+            SpeechDraftInvoiceSheet(customer: resolvedCustomer)
+        }
+        .sheet(isPresented: $showsDemoSettings) {
+            SpeechInvoiceDemoSettingsSheet(selection: $demoScenario)
+        }
+        .sheet(item: $customerResolutionScenario) { scenario in
+            SpeechCustomerSelectionSheet(
+                scenario: scenario,
+                customers: CreateInvoiceFixtures.customers,
+                onSelect: resolveCustomer
+            )
         }
         .onDisappear {
             recorder.stop()
@@ -307,6 +328,50 @@ struct SpeechToInvoiceView: View {
         reduceMotion
             ? .identity
             : .opacity.combined(with: .scale(scale: 0.98, anchor: .center))
+    }
+
+    /// The system navigation bar uses the device's safe-area width, which can differ from
+    /// a resizable Duo sheet. This inset is measured by the sheet itself, keeping both
+    /// actions attached to its current edges while the title remains centred.
+    private var speechSheetToolbar: some View {
+        ZStack {
+            Text("Speech to Invoice")
+                .font(.headline)
+                .foregroundStyle(SageActiveTheme.primaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .padding(.horizontal, 64)
+
+            HStack(spacing: 0) {
+                SageCarbonToolbarButton(
+                    icon: .close,
+                    accessibilityLabel: "Close Speech to Invoice",
+                    action: dismiss.callAsFunction
+                )
+                .controlSize(.large)
+                .frame(
+                    width: SpeechInvoiceLayout.toolbarControlHeight,
+                    height: SpeechInvoiceLayout.toolbarControlHeight
+                )
+
+                Spacer(minLength: 0)
+
+                SageCarbonToolbarButton(
+                    icon: .settings,
+                    accessibilityLabel: "Speech-to-invoice demo settings",
+                    action: { showsDemoSettings = true }
+                )
+                .controlSize(.large)
+                .frame(
+                    width: SpeechInvoiceLayout.toolbarControlHeight,
+                    height: SpeechInvoiceLayout.toolbarControlHeight
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: SpeechInvoiceLayout.toolbarControlHeight)
+        .padding(.top, SpeechInvoiceLayout.toolbarTopPadding)
+        .padding(.horizontal, 16)
     }
 
     /// The preparing content occupies the area above the persistent bottom overlay.
@@ -525,21 +590,19 @@ struct SpeechToInvoiceView: View {
     }
 
     private var privacyNotice: some View {
-        HStack(spacing: 0) {
-            Text("Check AI-generated content for inaccuracies. ")
-                .foregroundStyle(SageActiveTheme.supportingText)
-
-            Button("Privacy Notice") {
+        Text(
+            "Check AI-generated content for inaccuracies and review our [Privacy Notice](sageactive-privacy://notice)."
+        )
+            .foregroundStyle(SageActiveTheme.supportingText)
+            .tint(SageActiveTheme.brand)
+            .environment(\.openURL, OpenURLAction { _ in
                 showsPrivacyNotice = true
-            }
-            .foregroundStyle(SageActiveTheme.brand)
-            .underline()
-            .buttonStyle(.plain)
-            .accessibilityHint("Opens the privacy notice")
-        }
-        .font(.caption2)
-        .multilineTextAlignment(.center)
-        .padding(.horizontal, 32)
+                return .handled
+            })
+            .font(.caption2)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 32)
+            .accessibilityHint("Privacy Notice opens more information")
     }
 
     private var timerText: String {
@@ -640,6 +703,12 @@ struct SpeechToInvoiceView: View {
         recorder.stop()
         recordingRevealTask?.cancel()
         transcriptionTask?.cancel()
+
+        if demoScenario == .noProducts,
+           let blueMoonCafe = CreateInvoiceFixtures.customers.first(where: { $0.id == "blue-moon-cafe" }) {
+            resolvedCustomer = blueMoonCafe
+        }
+
         transcriptionTask = Task { @MainActor in
             if reduceMotion {
                 var transaction = Transaction()
@@ -691,6 +760,14 @@ struct SpeechToInvoiceView: View {
                 }
             }
 
+            if demoScenario == .noCustomer || demoScenario == .multipleMatches {
+                loadingMessage = "Finding customer"
+                try? await Task.sleep(for: .milliseconds(850))
+                guard !Task.isCancelled else { return }
+                customerResolutionScenario = demoScenario
+                return
+            }
+
             for message in loadingMessages {
                 guard !Task.isCancelled else { return }
                 loadingMessage = message
@@ -700,6 +777,22 @@ struct SpeechToInvoiceView: View {
             }
 
             guard !Task.isCancelled else { return }
+
+            if demoScenario == .noProducts {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.20)) {
+                    loadingContentVisible = false
+                }
+
+                if !reduceMotion {
+                    try? await Task.sleep(for: .milliseconds(200))
+                    guard !Task.isCancelled else { return }
+                }
+
+                onOpenInvoiceCreation(resolvedCustomer)
+                dismiss()
+                return
+            }
+
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.20)) {
                 loadingContentVisible = false
             }
@@ -715,6 +808,44 @@ struct SpeechToInvoiceView: View {
         }
     }
 
+    private func resolveCustomer(_ customer: InvoiceCustomer) {
+        resolvedCustomer = customer
+        customerResolutionScenario = nil
+
+        transcriptionTask?.cancel()
+        transcriptionTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+
+            // Let the customer sheet finish dismissing before the preparation
+            // story continues underneath it. The short confirmation message
+            // makes the hand-off feel like one continuous native flow instead
+            // of jumping directly to the invoice.
+            loadingMessage = "Customer selected"
+            try? await Task.sleep(for: .milliseconds(650))
+            guard !Task.isCancelled else { return }
+
+            loadingMessage = "Adding products"
+            try? await Task.sleep(for: .milliseconds(1_050))
+            guard !Task.isCancelled else { return }
+
+            loadingMessage = "Preparing invoice"
+            try? await Task.sleep(for: .milliseconds(1_050))
+            guard !Task.isCancelled else { return }
+
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.20)) {
+                loadingContentVisible = false
+            }
+
+            if !reduceMotion {
+                try? await Task.sleep(for: .milliseconds(200))
+                guard !Task.isCancelled else { return }
+            }
+
+            showsDraftInvoice = true
+        }
+    }
+
     private func animate(_ changes: () -> Void) {
         if reduceMotion {
             var transaction = Transaction()
@@ -723,6 +854,322 @@ struct SpeechToInvoiceView: View {
         } else {
             withAnimation(.smooth(duration: 0.38), changes)
         }
+    }
+}
+
+private struct SpeechInvoiceDemoSettingsSheet: View {
+    @Binding var selection: SpeechInvoiceDemoScenario
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(SpeechInvoiceDemoScenario.allCases) { scenario in
+                        Button {
+                            selection = scenario
+                        } label: {
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(scenario.rawValue)
+                                        .font(.body)
+                                        .foregroundStyle(SageActiveTheme.primaryText)
+
+                                    Text(scenario.detail)
+                                        .font(.caption)
+                                        .foregroundStyle(SageActiveTheme.supportingText)
+                                }
+
+                                Spacer(minLength: 12)
+
+                                Image(systemName: selection == scenario ? "checkmark.circle.fill" : "circle")
+                                    .font(.title3)
+                                    .foregroundStyle(
+                                        selection == scenario
+                                            ? SageActiveTheme.brand
+                                            : SageActiveTheme.supportingText
+                                    )
+                                    .accessibilityHidden(true)
+                            }
+                            .padding(.vertical, 4)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("Scenario to show")
+                } footer: {
+                    Text("The selected scenario is used the next time a recording is sent.")
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(SageActiveTheme.pageBackground)
+            .navigationTitle("Demo settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .toolbarBackground(.hidden, for: .navigationBar)
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(SageActiveTheme.pageBackground)
+    }
+}
+
+private struct SpeechCustomerSelectionSheet: View {
+    let scenario: SpeechInvoiceDemoScenario
+    let customers: [InvoiceCustomer]
+    let onSelect: (InvoiceCustomer) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText: String
+    @State private var showsAddCustomer = false
+
+    init(
+        scenario: SpeechInvoiceDemoScenario,
+        customers: [InvoiceCustomer],
+        onSelect: @escaping (InvoiceCustomer) -> Void
+    ) {
+        self.scenario = scenario
+        self.customers = customers
+        self.onSelect = onSelect
+        _searchText = State(initialValue: scenario == .multipleMatches ? "Moon cafe" : "")
+    }
+
+    private var filteredCustomers: [InvoiceCustomer] {
+        guard !searchText.isEmpty else { return customers }
+        return customers.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText)
+                || $0.contactName.localizedCaseInsensitiveContains(searchText)
+                || $0.address.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 10) {
+                explanationBanner
+                searchField
+                customerList
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(SageActiveTheme.pageBackground)
+            .navigationTitle("Select customer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SageCarbonToolbarButton(
+                        icon: .close,
+                        accessibilityLabel: "Cancel customer selection",
+                        action: dismiss.callAsFunction
+                    )
+                    .controlSize(.large)
+                    .frame(
+                        width: SpeechInvoiceLayout.toolbarControlHeight,
+                        height: SpeechInvoiceLayout.toolbarControlHeight
+                    )
+                }
+                .sharedBackgroundVisibility(.hidden)
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    SageCarbonToolbarButton(
+                        icon: .plusLarge,
+                        accessibilityLabel: "Add customer",
+                        action: { showsAddCustomer = true }
+                    )
+                    .controlSize(.large)
+                    .frame(
+                        width: SpeechInvoiceLayout.toolbarControlHeight,
+                        height: SpeechInvoiceLayout.toolbarControlHeight
+                    )
+                }
+                .sharedBackgroundVisibility(.hidden)
+            }
+            .toolbarBackground(.hidden, for: .navigationBar)
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
+        .presentationBackground(SageActiveTheme.pageBackground)
+        .sheet(isPresented: $showsAddCustomer) {
+            SpeechAddCustomerSheet { newCustomer in
+                onSelect(newCustomer)
+                dismiss()
+            }
+        }
+    }
+
+    private var explanationBanner: some View {
+        HStack(alignment: .top, spacing: 8) {
+            SageCarbonIconView(
+                .info,
+                pointSize: 20,
+                color: SageActiveTheme.informationVisual
+            )
+            .frame(width: 20, height: 20)
+
+            Text(bannerText)
+                .font(.footnote)
+                .foregroundStyle(SageActiveTheme.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+        .background(SageActiveTheme.informationBackground, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(SageActiveTheme.informationBorder, lineWidth: 1)
+        }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 4) {
+            SageCarbonIconView(
+                .search,
+                pointSize: 18,
+                color: SageActiveTheme.primaryText
+            )
+            .frame(width: 20, height: 20)
+
+            TextField("Search customers", text: $searchText)
+                .font(.body)
+                .foregroundStyle(SageActiveTheme.primaryText)
+                .textInputAutocapitalization(.words)
+                .autocorrectionDisabled()
+        }
+        .padding(.horizontal, 11)
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .background(SageActiveTheme.cardBackground, in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(SageActiveTheme.unselectedPillStroke.opacity(0.45), lineWidth: 1)
+        }
+    }
+
+    private var customerList: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                if filteredCustomers.isEmpty {
+                    ContentUnavailableView(
+                        "No customers found",
+                        systemImage: "person.crop.circle.badge.questionmark",
+                        description: Text("Try a different search or add a new customer.")
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 48)
+                } else {
+                    ForEach(filteredCustomers) { customer in
+                        Button {
+                            onSelect(customer)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 8) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(customer.name)
+                                        .font(.headline.weight(.semibold))
+                                        .foregroundStyle(SageActiveTheme.primaryText)
+
+                                    Text(customer.contactName)
+                                        .font(.subheadline)
+                                        .foregroundStyle(SageActiveTheme.supportingText)
+
+                                    Text(customer.address)
+                                        .font(.caption)
+                                        .foregroundStyle(SageActiveTheme.supportingText)
+                                        .lineLimit(1)
+                                }
+
+                                Spacer(minLength: 8)
+
+                                SageCarbonIconView(
+                                    .chevronRightThick,
+                                    pointSize: 20,
+                                    color: SageActiveTheme.primaryText
+                                )
+                                .frame(width: 20, height: 20)
+                            }
+                            .padding(16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Divider()
+                            .padding(.leading, 16)
+                    }
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private var bannerText: String {
+        switch scenario {
+        case .noCustomer:
+            "We cannot find a match for ‘Blue Moon Cafe’. Select a customer from the list or create a new one."
+        case .multipleMatches:
+            "We found multiple matches for “Moon cafe”. Select a customer from the list or create a new one."
+        default:
+            "Select a customer from the list or create a new one."
+        }
+    }
+}
+
+private struct SpeechAddCustomerSheet: View {
+    let onSave: (InvoiceCustomer) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var contactName = ""
+    @State private var address = ""
+
+    private var canSave: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Customer") {
+                    TextField("Business name", text: $name)
+                    TextField("Contact name", text: $contactName)
+                    TextField("Address", text: $address, axis: .vertical)
+                }
+            }
+            .navigationTitle("Add customer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        let customer = InvoiceCustomer(
+                            id: "speech-(UUID().uuidString)",
+                            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                            contactName: contactName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                ? "New contact"
+                                : contactName.trimmingCharacters(in: .whitespacesAndNewlines),
+                            address: address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                ? "Address to be added"
+                                : address.trimmingCharacters(in: .whitespacesAndNewlines)
+                        )
+                        onSave(customer)
+                        dismiss()
+                    }
+                    .disabled(!canSave)
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 
@@ -738,9 +1185,14 @@ private struct SpeechPrivacyNoticeSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         SageCarbonToolbarButton(
-                            icon: .cross,
+                            icon: .close,
                             accessibilityLabel: "Close privacy notice",
                             action: dismiss.callAsFunction
+                        )
+                        .controlSize(.large)
+                        .frame(
+                            width: SpeechInvoiceLayout.toolbarControlHeight,
+                            height: SpeechInvoiceLayout.toolbarControlHeight
                         )
                     }
                     .sharedBackgroundVisibility(.hidden)

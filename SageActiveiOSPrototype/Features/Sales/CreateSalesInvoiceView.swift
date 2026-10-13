@@ -64,6 +64,7 @@ struct CreateSalesInvoiceView: View {
     @State private var showsCreatedConfirmation = false
     @State private var summaryExpanded = false
     @State private var hasPresentedInitialQASheet = false
+    private let automaticallyShowProducts: Bool
 
     private var subtotalCents: Int {
         lineItems.reduce(0) { $0 + $1.taxableAmountCents }
@@ -76,7 +77,11 @@ struct CreateSalesInvoiceView: View {
     private var totalCents: Int { subtotalCents + ivaCents }
     private var canCreate: Bool { customer != nil && !lineItems.isEmpty }
 
-    init(prefilledDraft: Bool = false) {
+    init(
+        prefilledDraft: Bool = false,
+        prefilledCustomer: InvoiceCustomer? = nil,
+        automaticallyShowProducts: Bool = false
+    ) {
         let arguments = ProcessInfo.processInfo.arguments
         let sampleCustomer = CreateInvoiceFixtures.customers[0]
         let sampleProduct = CreateInvoiceFixtures.products[0]
@@ -89,10 +94,11 @@ struct CreateSalesInvoiceView: View {
             description: sampleProduct.description ?? ""
         )
 
-        let hasCustomer = prefilledDraft || arguments.contains("-showCreateInvoiceProducts")
+        let hasCustomer = prefilledCustomer != nil || prefilledDraft || arguments.contains("-showCreateInvoiceProducts")
             || arguments.contains("-showCreateInvoiceProductDetails")
             || arguments.contains("-showCreateInvoiceComplete")
-        _customer = State(initialValue: hasCustomer ? sampleCustomer : nil)
+        self.automaticallyShowProducts = automaticallyShowProducts
+        _customer = State(initialValue: prefilledCustomer ?? (hasCustomer ? sampleCustomer : nil))
         _fulfilmentDate = State(initialValue: nil)
         _lineItems = State(initialValue: prefilledDraft || arguments.contains("-showCreateInvoiceComplete") ? [sampleLine] : [])
         _showsDiscardAlert = State(initialValue: arguments.contains("-showCreateInvoiceDiscard"))
@@ -151,6 +157,7 @@ struct CreateSalesInvoiceView: View {
                     ) {
                         showsDiscardAlert = true
                     }
+                    .controlSize(.large)
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
@@ -329,7 +336,9 @@ struct CreateSalesInvoiceView: View {
         hasPresentedInitialQASheet = true
 
         let arguments = ProcessInfo.processInfo.arguments
-        let destination: InvoiceCreationSheet? = if arguments.contains("-showCreateInvoiceCustomers") {
+        let destination: InvoiceCreationSheet? = if automaticallyShowProducts {
+            .products
+        } else if arguments.contains("-showCreateInvoiceCustomers") {
             .customers
         } else if arguments.contains("-showCreateInvoiceProducts") {
             .products
@@ -788,6 +797,7 @@ private struct CustomerSelectionSheet: View {
                         accessibilityLabel: "Cancel",
                         action: dismiss.callAsFunction
                     )
+                    .controlSize(.large)
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
@@ -838,6 +848,7 @@ private struct ProductSelectionSheet: View {
                         accessibilityLabel: "Cancel",
                         action: dismiss.callAsFunction
                     )
+                    .controlSize(.large)
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
@@ -1059,6 +1070,7 @@ private struct ProductDetailsSheet: View {
                         accessibilityLabel: "Close",
                         action: onClose
                     )
+                    .controlSize(.large)
                 }
                 .sharedBackgroundVisibility(.hidden)
 
@@ -1308,6 +1320,7 @@ private struct InvoiceDateSelectionSheet: View {
                             accessibilityLabel: "Cancel",
                             action: dismiss.callAsFunction
                         )
+                        .controlSize(.large)
                     }
                     .sharedBackgroundVisibility(.hidden)
                     ToolbarItem(placement: .confirmationAction) {
@@ -1357,6 +1370,7 @@ private struct DocumentPrefixSelectionSheet: View {
                         accessibilityLabel: "Cancel",
                         action: dismiss.callAsFunction
                     )
+                    .controlSize(.large)
                 }
                 .sharedBackgroundVisibility(.hidden)
             }
@@ -1380,7 +1394,10 @@ enum CreateInvoiceFixtures {
         .init(id: "taller-ocho", name: "Taller Ocho S.L.", contactName: "Clara Vidal", address: "Carrer de Mallorca 212, 08008 Barcelona"),
         .init(id: "rio-claro", name: "Río Claro Consulting S.L.", contactName: "Álvaro Ortega", address: "Calle Uría 28, 33003 Oviedo"),
         .init(id: "plaza-nueva", name: "Plaza Nueva Retail S.L.", contactName: "Sara Vega", address: "Plaza Nueva 9, 18010 Granada"),
-        .init(id: "alba-foods", name: "Alba Foods S.A.", contactName: "Hugo Prieto", address: "Avenida de la Constitución 44, 03002 Alicante")
+        .init(id: "alba-foods", name: "Alba Foods S.A.", contactName: "Hugo Prieto", address: "Avenida de la Constitución 44, 03002 Alicante"),
+        .init(id: "yellow-moon-cafe", name: "Yellow Moon Cafe", contactName: "Alice Johnson", address: "10 Downing Street, London, SW1A 2AA"),
+        .init(id: "blue-moon-cafe", name: "Blue Moon Cafe", contactName: "Bob Williams", address: "221B Baker Street, London, NW1 6XE"),
+        .init(id: "red-moon-cafe", name: "Red Moon Cafe", contactName: "Charlie Brown", address: "1 High Street, Oxford, OX1 4AA")
     ]
 
     static let products: [InvoiceCatalogProduct] = [

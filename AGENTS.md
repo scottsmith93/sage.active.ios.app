@@ -43,6 +43,7 @@ The project owner is an experienced product designer learning native development
 - Do not rely on colour alone to communicate direction or urgency.
 - Give icon-only controls meaningful accessibility labels.
 - Preserve Dynamic Type and VoiceOver behaviour.
+- Treat iPhone Duo as a supported iPhone form factor in every design iteration: use standard adaptive bars, size classes, asymmetric safe areas and reserved regions; give toolbar symbols titles for overflow; and set visibility priorities for important actions.
 - Keep essential values available without chart gestures.
 - Use native Back navigation and pull-to-refresh.
 - Do not show chevrons for destinations that do not exist.

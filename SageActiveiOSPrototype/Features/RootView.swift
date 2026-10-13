@@ -1,11 +1,15 @@
 import SwiftUI
-import UIKit
 
 private enum AppTab: Hashable {
     case dashboard
     case sales
     case purchases
     case contacts
+}
+
+private struct SpeechInvoiceCreationRequest: Identifiable {
+    let id = UUID()
+    let customer: InvoiceCustomer
 }
 
 struct RootView: View {
@@ -22,8 +26,8 @@ struct RootView: View {
         if arguments.contains("-showQuotes") { return .quotes }
         return .invoices
     }()
-    @State private var showsSpeechToInvoice = false
-    @State private var tabBarFrame: CGRect = .zero
+    @State private var showsSpeechToInvoice = ProcessInfo.processInfo.arguments.contains("-showSpeechToInvoice")
+    @State private var speechInvoiceCreationRequest: SpeechInvoiceCreationRequest?
 
     private let speechInvoiceTransitionID = "speech-to-invoice"
 
@@ -55,7 +59,18 @@ struct RootView: View {
                     .tag(AppTab.dashboard)
 
                     NavigationStack {
-                        SalesView(store: store, documentType: $salesDocumentType)
+                        SalesView(
+                            store: store,
+                            documentType: $salesDocumentType
+                        )
+                        .modifier(
+                            SpeechInvoiceFloatingButtonModifier(
+                                isEnabled: true,
+                                transitionID: speechInvoiceTransitionID,
+                                transitionNamespace: speechInvoiceTransitionNamespace,
+                                action: { showsSpeechToInvoice = true }
+                            )
+                        )
                     }
                     .tabItem {
                         Label {
@@ -100,11 +115,6 @@ struct RootView: View {
                 }
                 .tabBarMinimizeBehavior(.never)
                 .scrollEdgeEffectStyle(.soft, for: .bottom)
-                .background {
-                    TabBarFrameReader(frame: $tabBarFrame)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .allowsHitTesting(false)
-                }
                 .blur(
                     radius: showsSpeechToInvoice && !reduceTransparency ? 2 : 0
                 )
@@ -112,34 +122,25 @@ struct RootView: View {
                     reduceMotion ? nil : .easeInOut(duration: 0.22),
                     value: showsSpeechToInvoice
                 )
-                .overlay {
-                    GeometryReader { proxy in
-                        if selectedTab == .sales {
-                            SpeechInvoiceEntryButton {
-                                showsSpeechToInvoice = true
-                            }
-                            .position(
-                                x: proxy.size.width - SageActiveTheme.pageSpacing - 28,
-                                y: tabBarFrame == .zero
-                                    ? proxy.size.height - 120
-                                    : tabBarFrame.minY - 24 - 28
-                            )
-                            .matchedTransitionSource(
-                                id: speechInvoiceTransitionID,
-                                in: speechInvoiceTransitionNamespace
-                            )
+                .sheet(isPresented: $showsSpeechToInvoice) {
+                    SpeechToInvoiceView { customer in
+                        showsSpeechToInvoice = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            speechInvoiceCreationRequest = SpeechInvoiceCreationRequest(customer: customer)
                         }
                     }
-                    .allowsHitTesting(true)
-                }
-                .sheet(isPresented: $showsSpeechToInvoice) {
-                    SpeechToInvoiceView()
                         .navigationTransition(
                             .zoom(
                                 sourceID: speechInvoiceTransitionID,
                                 in: speechInvoiceTransitionNamespace
                             )
                         )
+                }
+                .sheet(item: $speechInvoiceCreationRequest) { request in
+                    CreateSalesInvoiceView(
+                        prefilledCustomer: request.customer,
+                        automaticallyShowProducts: true
+                    )
                 }
             } else {
                 NavigationStack {
@@ -171,21 +172,48 @@ struct RootView: View {
     }
 }
 
+private struct SpeechInvoiceFloatingButtonModifier: ViewModifier {
+    let isEnabled: Bool
+    let transitionID: String
+    let transitionNamespace: Namespace.ID
+    let action: () -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        content.safeAreaInset(edge: .bottom, alignment: .trailing, spacing: 8) {
+            if isEnabled {
+                accessoryContent
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 8)
+            }
+        }
+    }
+
+    private var accessoryContent: some View {
+        SpeechInvoiceEntryButton(action: action)
+            .matchedTransitionSource(
+                id: transitionID,
+                in: transitionNamespace
+            )
+    }
+}
+
 private struct SpeechInvoiceEntryButton: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            ZStack {
-                Color.clear
+            Label {
+                Text("Speech to invoice")
+            } icon: {
                 SageCarbonIconView(
                     .microphone,
                     pointSize: 20,
                     color: SageActiveTheme.primaryText
                 )
             }
-            .frame(width: 56, height: 56)
-            .contentShape(Circle())
+            .labelStyle(.iconOnly)
+            .frame(width: 20, height: 20)
         }
         .buttonStyle(SpeechInvoiceButtonStyle())
         .accessibilityLabel("Speech to invoice")
@@ -194,6 +222,8 @@ private struct SpeechInvoiceEntryButton: View {
 }
 
 private struct SpeechInvoiceButtonStyle: ButtonStyle {
+    private let diameter: CGFloat = 56
+
     func makeBody(configuration: Configuration) -> some View {
         ZStack {
             Circle()
@@ -201,81 +231,18 @@ private struct SpeechInvoiceButtonStyle: ButtonStyle {
 
             configuration.label
         }
-        .frame(width: 56, height: 56)
+        .frame(width: diameter, height: diameter)
         .glassEffect(.regular.interactive(), in: Circle())
         .overlay {
-            CopilotGradientStroke(shape: Circle())
+            // Keep the same absolute-time Copilot stroke as the sheet, but slow
+            // it down on this smaller circle so the colour movement reads at the
+            // same visual pace.
+            CopilotGradientStroke(shape: Circle(), cycleDuration: 12)
                 .padding(1)
                 .opacity(configuration.isPressed ? 0 : 1)
         }
         .scaleEffect(configuration.isPressed ? 0.94 : 1)
         .animation(.smooth(duration: 0.18), value: configuration.isPressed)
-    }
-}
-
-/// Reports the actual UIKit tab-bar frame so the floating action button can be
-/// placed relative to the bar's visual top, including on devices with different
-/// safe-area and Liquid Glass tab-bar geometry.
-private struct TabBarFrameReader: UIViewRepresentable {
-    @Binding var frame: CGRect
-
-    func makeUIView(context: Context) -> ProbeView {
-        let view = ProbeView()
-        let binding = $frame
-        view.onFrameChange = { newFrame in
-            Task { @MainActor in
-                guard binding.wrappedValue != newFrame else { return }
-                binding.wrappedValue = newFrame
-            }
-        }
-        return view
-    }
-
-    func updateUIView(_ view: ProbeView, context: Context) {
-        view.onFrameChange = { newFrame in
-            let binding = $frame
-            Task { @MainActor in
-                guard binding.wrappedValue != newFrame else { return }
-                binding.wrappedValue = newFrame
-            }
-        }
-        view.setNeedsLayout()
-    }
-
-    final class ProbeView: UIView {
-        var onFrameChange: ((CGRect) -> Void)?
-
-        override func didMoveToWindow() {
-            super.didMoveToWindow()
-            reportFrame()
-        }
-
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            reportFrame()
-        }
-
-        private func reportFrame() {
-            guard let window,
-                  let tabBar = findTabBar(in: window),
-                  tabBar.bounds.height > 0 else { return }
-
-            onFrameChange?(tabBar.convert(tabBar.bounds, to: self))
-        }
-
-        private func findTabBar(in view: UIView) -> UITabBar? {
-            if let tabBar = view as? UITabBar, !tabBar.isHidden, tabBar.alpha > 0 {
-                return tabBar
-            }
-
-            for child in view.subviews.reversed() {
-                if let tabBar = findTabBar(in: child) {
-                    return tabBar
-                }
-            }
-
-            return nil
-        }
     }
 }
 

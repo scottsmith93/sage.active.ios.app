@@ -5,19 +5,27 @@ import SwiftUI
 struct SpeechDraftInvoiceSheet: View {
     @Environment(\.dismiss) private var dismiss
 
+    let customer: InvoiceCustomer
+
+    init(customer: InvoiceCustomer = CreateInvoiceFixtures.customers[0]) {
+        self.customer = customer
+    }
+
     var body: some View {
         NavigationStack {
-            SpeechDraftInvoiceContent()
+            SpeechDraftInvoiceContent(customer: customer)
                 .background(SageActiveTheme.pageBackground)
                 .navigationTitle("Sales invoice")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         SageCarbonToolbarButton(
-                            icon: .cross,
+                            icon: .close,
                             accessibilityLabel: "Close sales invoice",
                             action: dismiss.callAsFunction
                         )
+                        .controlSize(.large)
+                        .frame(width: 48, height: 48)
                     }
                     .sharedBackgroundVisibility(.hidden)
                 }
@@ -31,7 +39,7 @@ struct SpeechDraftInvoiceSheet: View {
 /// invoice data structures as the create flow, but presents a reviewable draft rather
 /// than sending the user back to the data-entry form.
 struct SpeechDraftInvoiceContent: View {
-    private let customer = CreateInvoiceFixtures.customers[0]
+    let customer: InvoiceCustomer
     private let product = CreateInvoiceFixtures.products[0]
 
     private var lineTotalCents: Int {
@@ -57,6 +65,7 @@ struct SpeechDraftInvoiceContent: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SageActiveTheme.pageSpacing) {
+                speechOriginBanner
                 summaryCard
                 finaliseButton
                 documentActions
@@ -70,6 +79,36 @@ struct SpeechDraftInvoiceContent: View {
         }
         .scrollIndicators(.hidden)
         .background(Color.clear)
+    }
+
+    private var speechOriginBanner: some View {
+        HStack(alignment: .center, spacing: 12) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "sparkle")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(SageActiveTheme.primaryText)
+
+                Circle()
+                    .fill(SageActiveTheme.brilliantGreen)
+                    .frame(width: 5, height: 5)
+                    .offset(x: 3, y: -2)
+            }
+            .frame(width: 20, height: 20)
+
+            Text("This invoice was created using speech to invoice. Check the details before finalising.")
+                .font(.footnote)
+                .foregroundStyle(SageActiveTheme.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SageActiveTheme.cardBackground, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(SageActiveTheme.primaryText.opacity(0.5), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var summaryCard: some View {

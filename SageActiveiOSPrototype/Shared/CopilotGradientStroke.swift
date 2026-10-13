@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The single animated stroke treatment used by Copilot entry points and presentations.
-/// Using an absolute-time phase keeps separate source and destination views visually in sync.
+/// Using an absolute-time phase keeps each instance's movement smooth and deterministic.
 struct CopilotGradientStroke<StrokeShape: Shape>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -11,8 +11,9 @@ struct CopilotGradientStroke<StrokeShape: Shape>: View {
     var opacity: Double = 1
 
     // Eight seconds keeps the branded movement easy to notice without making
-    // the border compete with the sheet's primary content.
-    private let cycleDuration: TimeInterval = 8
+    // the border compete with the sheet's primary content. Smaller controls
+    // can opt into a longer cycle so the same movement does not appear rushed.
+    var cycleDuration: TimeInterval = 8
 
     private var loopingColors: [Color] {
         guard let firstColor = SageActiveTheme.speechButtonGradientColors.first else {

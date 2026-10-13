@@ -36,13 +36,20 @@ private struct SalesDocument: Identifiable {
 }
 
 struct SalesView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+
     let store: PrototypeStore
 
     @Binding private var documentType: SalesDocumentType
     @State private var selectedFilter = "All"
     @State private var sort: SalesSort = .newest
     @State private var searchText = ""
+    @State private var isSearchPresented = false
+    @State private var isTitleCollapsed = false
+    @State private var documentTapTrigger = 0
     @State private var showsInvoiceCreation: Bool
+    @Namespace private var searchGlassNamespace
 
     init(
         store: PrototypeStore,
@@ -56,6 +63,40 @@ struct SalesView: View {
     }
 
     var body: some View {
+        salesContent
+        .background(SageActiveTheme.pageBackground)
+        .navigationTitle(isSearchPresented ? "" : "Sales")
+        .navigationSubtitle(
+            !isSearchPresented && isTitleCollapsed ? documentType.rawValue : ""
+        )
+        .navigationBarTitleDisplayMode(isSearchPresented ? .inline : .large)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            salesToolbar
+        }
+        .modifier(SalesDuoToolbarBehavior())
+        .animation(searchAnimation, value: isSearchPresented)
+        .animation(headerAnimation, value: isTitleCollapsed)
+        .sensoryFeedback(.impact(weight: .light), trigger: documentTapTrigger)
+        .onAppear {
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("-showSales") {
+                selectedFilter = "All"
+                sort = .newest
+            }
+            if arguments.contains(where: { $0.hasPrefix("-showCreateInvoice") }) {
+                showsInvoiceCreation = true
+            }
+        }
+        .onChange(of: documentType) {
+            selectedFilter = "All"
+        }
+        .fullScreenCover(isPresented: $showsInvoiceCreation) {
+            CreateSalesInvoiceView()
+        }
+    }
+
+    private var salesContent: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: SageActiveTheme.controlSpacing) {
                 Picker("Sales document type", selection: $documentType) {
@@ -69,65 +110,102 @@ struct SalesView: View {
 
                 filterStrip
 
-                sortControl
-                    .padding(.horizontal)
-
                 documentList
                     .padding(.horizontal)
             }
-            .padding(.vertical, SageActiveTheme.controlSpacing)
+            .padding(.vertical, 8)
         }
-        .background(SageActiveTheme.pageBackground)
-        .navigationTitle("Sales")
-        .navigationSubtitle(documentType.rawValue)
-        .navigationBarTitleDisplayMode(.large)
-        .searchable(
-            text: $searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "Search \(documentType.rawValue.lowercased())"
-        )
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                        showsInvoiceCreation = true
-                } label: {
-                    SageCarbonIconView(
-                        .plusLarge,
-                        pointSize: 20,
-                        color: SageActiveTheme.primaryActionForeground
-                    )
-                }
-                .buttonStyle(.plain)
-                .frame(width: 48, height: 48)
-                .glassEffect(
-                    .regular.tint(SageActiveTheme.brand).interactive(),
-                    in: Circle()
-                )
-                .accessibilityLabel("Create a new sales document")
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y > 0
+        } action: { _, hasScrolledPastLargeTitle in
+            guard isTitleCollapsed != hasScrolledPastLargeTitle else { return }
+            withAnimation(headerAnimation) {
+                isTitleCollapsed = hasScrolledPastLargeTitle
             }
-            // iOS 26 groups trailing toolbar content into a shared glass capsule by
-            // default. Keep the actions in the native toolbar, but make each
-            // circular control stand alone as designed.
+        }
+    }
+
+    private var searchAnimation: Animation? {
+        reduceMotion ? nil : .snappy(duration: 0.42, extraBounce: 0)
+    }
+
+    private var headerAnimation: Animation? {
+        reduceMotion ? nil : .easeInOut(duration: 0.24)
+    }
+
+    @ToolbarContentBuilder
+    private var salesToolbar: some ToolbarContent {
+        if #available(iOS 27.1, *) {
+            if isSearchPresented {
+                ToolbarItem(placement: .topBarTrailing) {
+                    salesSearchControl
+                }
+                // A text field needs horizontal room; keep the compact symbol
+                // vertical-ready while the expanded search stays horizontal.
+                .axisBehavior(.horizontalOnly)
+                .visibilityPriority(.high)
+                .sharedBackgroundVisibility(.hidden)
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    salesSearchControl
+                }
+                .axisBehavior(.verticalPreferred)
+                .visibilityPriority(.high)
+                .sharedBackgroundVisibility(.hidden)
+
+                ToolbarItem(placement: .topBarPinnedTrailing) {
+                    createSalesDocumentButton
+                }
+                .axisBehavior(.verticalPreferred)
+                .visibilityPriority(.high)
+                .sharedBackgroundVisibility(.hidden)
+            }
+        } else {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                salesSearchControl
+
+                if !isSearchPresented {
+                    createSalesDocumentButton
+                }
+            }
             .sharedBackgroundVisibility(.hidden)
         }
-        .onAppear {
-            let arguments = ProcessInfo.processInfo.arguments
-            if arguments.contains("-showSales") {
-                selectedFilter = "All"
-                sort = .newest
-                searchText = ""
+    }
+
+    private var salesSearchControl: some View {
+        SageActiveSearchControl(
+            text: $searchText,
+            isPresented: $isSearchPresented,
+            prompt: "Search sales documents",
+            accessibilityLabel: "Search sales documents",
+            glassNamespace: searchGlassNamespace
+        )
+    }
+
+    private var createSalesDocumentButton: some View {
+        Button {
+            showsInvoiceCreation = true
+        } label: {
+            Label {
+                Text("Create sales document")
+            } icon: {
+                SageCarbonIconView(
+                    .plusLarge,
+                    pointSize: 20,
+                    color: colorScheme == .dark
+                        ? SageActiveTheme.primaryActionForeground
+                        : SageActiveTheme.white
+                )
             }
-            if arguments.contains(where: { $0.hasPrefix("-showCreateInvoice") }) {
-                showsInvoiceCreation = true
-            }
+            .labelStyle(.iconOnly)
         }
-        .onChange(of: documentType) {
-            selectedFilter = "All"
-            searchText = ""
-        }
-        .fullScreenCover(isPresented: $showsInvoiceCreation) {
-            CreateSalesInvoiceView()
-        }
+        .buttonStyle(.plain)
+        .frame(width: 48, height: 48)
+        .glassEffect(
+            .regular.tint(SageActiveTheme.brand).interactive(),
+            in: Circle()
+        )
+        .accessibilityLabel("Create a new sales document")
     }
 
     private var filterStrip: some View {
@@ -145,34 +223,34 @@ struct SalesView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
         }
-        .frame(height: 52)
+        .frame(height: 48)
+        .scrollClipDisabled(false)
+        .mask { Rectangle() }
+        .padding(.horizontal, 16)
     }
 
     private var sortControl: some View {
-        HStack {
-            Text("\(visibleDocuments.count) \(documentType.rawValue.lowercased())")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Menu {
-                Picker("Sort sales documents", selection: $sort) {
-                    ForEach(SalesSort.allCases) { option in
-                        Text(option.rawValue).tag(option)
-                    }
+        Menu {
+            Picker("Sort sales documents", selection: $sort) {
+                ForEach(SalesSort.allCases) { option in
+                    Text(option.rawValue).tag(option)
                 }
-            } label: {
-                Label(sort.rawValue, systemImage: "arrow.up.arrow.down")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(SageActiveTheme.primaryText)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 8)
-                    .background(SageActiveTheme.cardBackground, in: Capsule())
             }
-            .tint(SageActiveTheme.primaryText)
+        } label: {
+            Label(sort.rawValue, systemImage: "arrow.up.arrow.down")
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(SageActiveTheme.primaryText)
+                .padding(.horizontal, 12)
+                .frame(height: 40)
+                .contentShape(Capsule())
+                .glassEffect(.regular.interactive(), in: Capsule())
         }
+        .controlSize(.regular)
+        .tint(SageActiveTheme.primaryText)
+        .accessibilityLabel("Sort sales documents")
+        .accessibilityValue(sort.rawValue)
     }
 
     @ViewBuilder
@@ -182,27 +260,57 @@ struct SalesView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 48)
         } else if sort.usesDateSections {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(dateSections, id: \.date) { section in
-                    Text(section.date.formatted(Self.sectionDateFormat))
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(height: 32, alignment: .bottomLeading)
+            LazyVStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(dateSections.enumerated()), id: \.element.date) { index, section in
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text(section.date.formatted(Self.sectionDateFormat))
+                                .font(.headline.bold())
+                                .foregroundStyle(SageActiveTheme.primaryText)
 
-                    LazyVStack(spacing: 8) {
-                        ForEach(section.documents) { document in
-                            SalesDocumentCard(document: document, referenceDate: store.referenceDate)
+                            if index == 0 {
+                                Spacer(minLength: 0)
+                                sortControl
+                            }
                         }
+                        .padding(.top, 24)
+                        .padding(.bottom, 16)
+
+                        salesDocumentStack(section.documents)
                     }
                 }
             }
         } else {
-            LazyVStack(spacing: 8) {
-                ForEach(visibleDocuments) { document in
-                    SalesDocumentCard(document: document, referenceDate: store.referenceDate)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Spacer(minLength: 0)
+                    sortControl
+                }
+                .padding(.top, 24)
+                .padding(.bottom, 16)
+
+                salesDocumentStack(visibleDocuments)
+            }
+        }
+    }
+
+    private func salesDocumentStack(_ documents: [SalesDocument]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(documents.enumerated()), id: \.element.id) { index, document in
+                if index > 0 {
+                    Divider()
+                        .padding(.leading, 16)
+                }
+
+                SalesDocumentCard(document: document, referenceDate: store.referenceDate) {
+                    documentTapTrigger += 1
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SageActiveTheme.cardBackground)
+        .clipShape(.rect(cornerRadius: 20, style: .continuous))
+        .contentShape(.rect(cornerRadius: 20, style: .continuous))
     }
 
     private var filters: [SalesFilter] {
@@ -346,62 +454,207 @@ struct SalesView: View {
     ]
 }
 
+/// A reusable compact-to-expanded Liquid Glass search control for toolbar actions.
+///
+/// The control keeps the native TextField and keyboard behavior, while the button
+/// and field share one glass identity so the material morphs between states.
+struct SageActiveSearchControl: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @Binding private var text: String
+    @Binding private var isPresented: Bool
+    @FocusState private var isFocused: Bool
+    private let glassNamespace: Namespace.ID
+
+    private let prompt: String
+    private let accessibilityLabel: String
+
+    init(
+        text: Binding<String>,
+        isPresented: Binding<Bool>,
+        prompt: String,
+        accessibilityLabel: String,
+        glassNamespace: Namespace.ID
+    ) {
+        _text = text
+        _isPresented = isPresented
+        self.prompt = prompt
+        self.accessibilityLabel = accessibilityLabel
+        self.glassNamespace = glassNamespace
+    }
+
+    var body: some View {
+        GlassEffectContainer(spacing: 8) {
+            if isPresented {
+                HStack(spacing: 8) {
+                    expandedField
+                    closeButton
+                }
+            } else {
+                searchButton
+            }
+        }
+        .frame(maxWidth: isPresented ? .infinity : nil)
+        .animation(searchAnimation, value: isPresented)
+        .onAppear {
+            focusIfPresented()
+        }
+        .onChange(of: isPresented) { _, presented in
+            if presented { focusIfPresented() } else { isFocused = false }
+        }
+    }
+
+    private func focusIfPresented() {
+        guard isPresented else { return }
+        Task { @MainActor in
+            isFocused = true
+        }
+    }
+
+    private var searchButton: some View {
+        Button {
+            withAnimation(searchAnimation) {
+                isPresented = true
+            }
+        } label: {
+            Label {
+                Text(accessibilityLabel)
+            } icon: {
+                SageCarbonIconView(
+                    .search,
+                    pointSize: 20,
+                    color: SageActiveTheme.primaryText
+                )
+            }
+            .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.plain)
+        .frame(width: 48, height: 48)
+        .glassEffect(.regular.interactive(), in: Circle())
+        .glassEffectID("sage-active-search-control", in: glassNamespace)
+        .glassEffectTransition(reduceMotion ? .identity : .matchedGeometry)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint("Opens search")
+    }
+
+    private var expandedField: some View {
+        HStack(spacing: 8) {
+            SageCarbonIconView(
+                .search,
+                pointSize: 18,
+                color: SageActiveTheme.supportingText
+            )
+
+            TextField(prompt, text: $text)
+                .focused($isFocused)
+                .textFieldStyle(.plain)
+                .foregroundStyle(SageActiveTheme.primaryText)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .accessibilityLabel(accessibilityLabel)
+
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    SageCarbonIconView(
+                        .cross,
+                        pointSize: 14,
+                        color: SageActiveTheme.supportingText
+                    )
+                }
+                .buttonStyle(.plain)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(minWidth: 180, idealWidth: 310, maxWidth: .infinity, minHeight: 48, maxHeight: 48)
+        .glassEffect(.regular.interactive(), in: Capsule())
+        .glassEffectID("sage-active-search-control", in: glassNamespace)
+        .glassEffectTransition(reduceMotion ? .identity : .matchedGeometry)
+    }
+
+    private var closeButton: some View {
+        Button {
+            withAnimation(searchAnimation) {
+                isPresented = false
+            }
+        } label: {
+            Label {
+                Text("Close search")
+            } icon: {
+                SageCarbonIconView(
+                    .close,
+                    pointSize: 24,
+                    color: SageActiveTheme.primaryText
+                )
+            }
+            .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.plain)
+        .frame(width: 48, height: 48)
+        .glassEffect(.regular.interactive(), in: Circle())
+        .accessibilityLabel("Close search")
+    }
+
+    private var searchAnimation: Animation? {
+        reduceMotion ? nil : .snappy(duration: 0.42, extraBounce: 0)
+    }
+}
+
+private struct SalesDuoToolbarBehavior: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 27.1, *) {
+            // Sales is task-oriented: keep search, speech, and creation available
+            // before the tab bar when the shared Duo bar needs to compress.
+            content.toolbarVerticalCompressionBehavior(.prefersToolbarItems)
+        } else {
+            content
+        }
+    }
+}
+
 private struct SalesDocumentCard: View {
     let document: SalesDocument
     let referenceDate: Date
+    let onTap: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(document.customerName)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
-
-                statusPill
-
-                // Keep the established due-date context available for documents that
-                // need it. It stays compact and allows the card to grow only when
-                // there is meaningful timing information to show.
-                if let timingLabel {
-                    Text(timingLabel)
-                        .font(.caption)
-                        .foregroundStyle(timingColour)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(alignment: .trailing, spacing: 6) {
-                Text(MoneyFormatting.euro(document.totalCents))
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
-
-                if document.status != "Draft" {
-                    Text(document.number)
-                        .font(.caption)
-                        .foregroundStyle(SageActiveTheme.supportingText)
+        Button(action: onTap) {
+            HStack(alignment: .center, spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(document.customerName)
+                        .font(.body)
                         .lineLimit(1)
-                }
-            }
-            .fixedSize(horizontal: true, vertical: false)
 
-            SageCarbonIconView(
-                .chevronRightThick,
-                pointSize: 20,
-                color: SageActiveTheme.primaryText
-            )
-            .frame(width: 20, height: 20)
-            .accessibilityHidden(true)
+                    if document.status != "Draft" {
+                        Text(document.number)
+                            .font(.caption)
+                            .foregroundStyle(SageActiveTheme.supportingText)
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text(MoneyFormatting.euro(document.totalCents))
+                        .font(.body.weight(.semibold))
+                        .lineLimit(1)
+
+                    statusPill
+                }
+                .fixedSize(horizontal: true, vertical: false)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, minHeight: 82, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
-        .background(
-            SageActiveTheme.cardBackground,
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .buttonStyle(SalesDocumentButtonStyle())
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityValue(
             Text([document.status, timingLabel].compactMap { $0 }.joined(separator: ", "))
@@ -414,7 +667,6 @@ private struct SalesDocumentCard: View {
             .fontWeight(.semibold)
             .foregroundStyle(SageActiveTheme.primaryText)
             .padding(.horizontal, 8)
-            .padding(.vertical, 4)
             .frame(minHeight: 24)
             .background(statusPillFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay {
@@ -434,12 +686,6 @@ private struct SalesDocumentCard: View {
             return days == 0 ? "Due today" : "Due in \(days) days"
         }
         return nil
-    }
-
-    private var timingColour: Color {
-        document.status.contains("overdue") || document.status == "Overdue"
-            ? SageActiveTheme.negativeText
-            : SageActiveTheme.supportingText
     }
 
     private var statusPillFill: Color {
@@ -464,5 +710,16 @@ private struct SalesDocumentCard: View {
         case "Draft": SageActiveTheme.unselectedPillStroke
         default: SageActiveTheme.unselectedPillStroke
         }
+    }
+}
+
+private struct SalesDocumentButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                configuration.isPressed
+                    ? SageActiveTheme.secondaryUtility25
+                    : Color.clear
+            )
     }
 }
