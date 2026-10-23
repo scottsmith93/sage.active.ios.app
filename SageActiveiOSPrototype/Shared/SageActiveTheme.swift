@@ -109,6 +109,22 @@ enum SageActiveTheme {
     static let disabled = Theme.GRColorPalette.disabled.color
     static let shadow = Theme.GRColorPalette.shadow.color
 
+    // Decorative card artwork stays behind the app styling boundary.
+    static let cardInk = Color.white
+    static let cardSupportingInk = Color.white.opacity(0.46)
+    static let cardFrozenOverlay = informationVisual.opacity(0.18)
+    /// A narrow green highlight creates a moving shine within the subdued border.
+    static let cardStrokeGradient = Gradient(stops: [
+        .init(color: brand.opacity(0.05), location: 0),
+        .init(color: brand.opacity(0.40), location: 0.16),
+        .init(color: brand.opacity(0.20), location: 0.20),
+        .init(color: brilliantGreen.opacity(0.95), location: 0.225),
+        .init(color: brand.opacity(0.20), location: 0.25),
+        .init(color: brand.opacity(0.14), location: 0.5),
+        .init(color: brand.opacity(0.02), location: 0.8),
+        .init(color: brand.opacity(0.05), location: 1)
+    ])
+
     // Graphite's current geometry values are component-specific and don't yet expose stable DS
     // semantic roles. These remain app-owned until the future DSTokens façade is available.
     static let cardCornerRadius: CGFloat = 24

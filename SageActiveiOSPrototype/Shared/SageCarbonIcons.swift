@@ -493,6 +493,7 @@ public extension SageCarbonIcon {
     static let ellipsisVertical = SageCarbonIcon(rawValue: "ellipsis_vertical")!
     static let error = SageCarbonIcon(rawValue: "error")!
     static let filter = SageCarbonIcon(rawValue: "filter")!
+    static let filterNew = SageCarbonIcon(rawValue: "filter_new")!
     static let getQuote = SageCarbonIcon(rawValue: "get_quote")!
     static let info = SageCarbonIcon(rawValue: "info")!
     static let jobSeeked = SageCarbonIcon(rawValue: "job_seeked")!

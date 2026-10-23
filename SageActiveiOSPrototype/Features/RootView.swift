@@ -19,6 +19,8 @@ struct RootView: View {
     @Namespace private var speechInvoiceTransitionNamespace
 
     @State private var store = PrototypeStore()
+    @State private var cards = BusinessCardStore.shared
+    @State private var dashboardPath: [String] = []
     @State private var selectedTab: AppTab = ProcessInfo.processInfo.arguments.contains("-showSales") || ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-showCreateInvoice") }) ? .sales : .dashboard
     @State private var salesDocumentType: SalesDocumentType = {
         let arguments = ProcessInfo.processInfo.arguments
@@ -35,18 +37,24 @@ struct RootView: View {
         Group {
             if store.dataset != nil {
                 TabView(selection: $selectedTab) {
-                    NavigationStack {
-                        if ProcessInfo.processInfo.arguments.contains("-showBankBalance") {
-                            BankBalanceView(store: store)
-                        } else {
-                            HomeView(
-                                store: store,
-                                initialMode: ProcessInfo.processInfo.arguments.contains("-showInsights") ? .insights : .overview,
-                                onShowQuotes: {
-                                    salesDocumentType = .quotes
-                                    selectedTab = .sales
-                                }
-                            )
+                    NavigationStack(path: $dashboardPath) {
+                        Group {
+                            if ProcessInfo.processInfo.arguments.contains("-showBankBalance") {
+                                BankBalanceView(store: store)
+                            } else {
+                                HomeView(
+                                    store: store,
+                                    cards: cards,
+                                    initialMode: ProcessInfo.processInfo.arguments.contains("-showInsights") ? .insights : .overview,
+                                    onShowQuotes: {
+                                        salesDocumentType = .quotes
+                                        selectedTab = .sales
+                                    }
+                                )
+                            }
+                        }
+                        .navigationDestination(for: String.self) { destination in
+                            if destination == "business-card" { BusinessCardView(cards: cards) }
                         }
                     }
                     .tabItem {
@@ -158,15 +166,32 @@ struct RootView: View {
         .background(SageActiveTheme.pageBackground.ignoresSafeArea())
         .onAppear {
             let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("-showBusinessCard") || cards.requestedTransactionID != nil {
+                dashboardPath = ["business-card"]
+            }
+            if let argument = arguments.first(where: { $0.hasPrefix("-showCardTransaction=") }) {
+                cards.openTransaction(id: String(argument.dropFirst("-showCardTransaction=".count)))
+                dashboardPath = ["business-card"]
+            }
             if arguments.contains("-showSales") || arguments.contains(where: { $0.hasPrefix("-showCreateInvoice") }) {
                 selectedTab = .sales
             } else if arguments.contains("-showBankBalance") || arguments.contains("-showDisplaySettings") || arguments.contains("-showInsights") {
                 selectedTab = .dashboard
             }
         }
+        .onChange(of: cards.routeVersion) {
+            selectedTab = .dashboard
+            showsSpeechToInvoice = false
+            speechInvoiceCreationRequest = nil
+            dashboardPath = ["business-card"]
+        }
         .onOpenURL { url in
-            if url.scheme == "sageactive" {
-                selectedTab = .dashboard
+            guard url.scheme == "sageactive" else { return }
+            selectedTab = .dashboard
+            if url.host == "card" {
+                dashboardPath = ["business-card"]
+                let parts = url.pathComponents.filter { $0 != "/" }
+                if parts.count == 2, parts[0] == "transaction" { cards.openTransaction(id: parts[1]) }
             }
         }
     }

@@ -52,6 +52,7 @@ struct FigmaDashboardOverview: View {
     private func dashboardSection(_ section: DashboardSectionKind) -> some View {
         switch section {
         case .banking:
+            BusinessCardDashboardEntry(cards: BusinessCardStore.shared)
             balanceSection
         case .salesInvoices:
             invoiceSection(.sales)

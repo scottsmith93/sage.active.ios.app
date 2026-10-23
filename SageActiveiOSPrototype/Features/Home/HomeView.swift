@@ -43,6 +43,7 @@ enum DashboardBankingDemoState: String, CaseIterable, Identifiable {
 
 struct HomeView: View {
     let store: PrototypeStore
+    let cards: BusinessCardStore
 
     @State private var mode: HomeMode
     @State private var showsDisplaySettings = false
@@ -64,10 +65,12 @@ struct HomeView: View {
 
     init(
         store: PrototypeStore,
+        cards: BusinessCardStore = .shared,
         initialMode: HomeMode = .overview,
         onShowQuotes: @escaping () -> Void = {}
     ) {
         self.store = store
+        self.cards = cards
         self.onShowQuotes = onShowQuotes
         _mode = State(initialValue: initialMode)
         _showsDisplaySettings = State(initialValue: ProcessInfo.processInfo.arguments.contains("-showDisplaySettings"))
@@ -85,8 +88,11 @@ struct HomeView: View {
 
             ScrollView {
                 LazyVStack(spacing: 16) {
-                    controls
-                        .padding(.horizontal)
+                    VStack(spacing: 0) {
+                        CardDashboardApproval(cards: cards)
+                        controls
+                    }
+                    .padding(.horizontal)
 
                     if mode == .overview {
                         FigmaDashboardOverview(
