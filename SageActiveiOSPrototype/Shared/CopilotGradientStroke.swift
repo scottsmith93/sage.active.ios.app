@@ -14,13 +14,16 @@ struct CopilotGradientStroke<StrokeShape: Shape>: View {
     // the border compete with the sheet's primary content. Smaller controls
     // can opt into a longer cycle so the same movement does not appear rushed.
     var cycleDuration: TimeInterval = 8
+    var colors: [Color]? = nil
+    var gradient: Gradient? = nil
 
     private var loopingColors: [Color] {
-        guard let firstColor = SageActiveTheme.speechButtonGradientColors.first else {
+        let palette = colors ?? SageActiveTheme.speechButtonGradientColors
+        guard let firstColor = palette.first else {
             return []
         }
 
-        return SageActiveTheme.speechButtonGradientColors + [firstColor]
+        return palette + [firstColor]
     }
 
     var body: some View {
@@ -32,7 +35,7 @@ struct CopilotGradientStroke<StrokeShape: Shape>: View {
         ) { context in
             shape.stroke(
                 AngularGradient(
-                    colors: loopingColors,
+                    gradient: gradient ?? Gradient(colors: loopingColors),
                     center: .center,
                     startAngle: gradientAngle(at: context.date),
                     endAngle: gradientAngle(at: context.date) + .degrees(360)
