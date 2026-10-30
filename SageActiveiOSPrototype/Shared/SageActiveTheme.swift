@@ -113,6 +113,8 @@ enum SageActiveTheme {
     static let cardInk = Color.white
     static let cardSupportingInk = Color.white.opacity(0.46)
     static let cardFrozenOverlay = informationVisual.opacity(0.18)
+    static let cardShine = Color.white
+    static let cardShineTint = brilliantGreen
     /// A narrow green highlight creates a moving shine within the subdued border.
     static let cardStrokeGradient = Gradient(stops: [
         .init(color: brand.opacity(0.05), location: 0),

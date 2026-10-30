@@ -55,6 +55,7 @@ struct BusinessDebitCard: View {
                         .background { background }
                         .clipShape(.rect(cornerRadius: 20 * scale))
                         .overlay { outline(cornerRadius: 20 * scale) }
+                        .modifier(CardMotionEffect(cornerRadius: 20 * scale))
                 }
                 .aspectRatio(309.0 / 195.0, contentMode: .fit)
             }
@@ -153,6 +154,9 @@ struct BusinessDebitCard: View {
 }
 
 struct BusinessCardView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let cards: BusinessCardStore
     @State private var filter: CardActivityFilter = .all
@@ -162,39 +166,55 @@ struct BusinessCardView: View {
     @State private var showsHelp = false
     @State private var freezeEffect = false
     @State private var showsCompactCard = false
+    @State private var usesSplitLayout = false
     @State private var scrollPosition = ScrollPosition()
 
     var body: some View {
         @Bindable var cards = cards
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 20) {
-                BusinessDebitCard(isFrozen: cards.isFrozen, balanceCents: cards.availableBalanceCents)
-                    .onScrollVisibilityChange(threshold: 0.01) { isVisible in
-                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
-                            showsCompactCard = !isVisible
-                        }
-                    }
-                if cards.isFrozen { frozenHelp }
-                Text("Transactions").font(.title2.bold())
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(CardActivityFilter.allCases, id: \.self) { option in
-                            SelectionPill(title: option.rawValue, isSelected: filter == option, variant: .salesFilter) {
-                                filter = option
+        GeometryReader { geometry in
+            let wideInnerDisplay = horizontalSizeClass == .regular && verticalSizeClass == .regular
+                && geometry.size.width >= 760 && geometry.size.width > geometry.size.height
+            let split = wideInnerDisplay && !typeSize.isAccessibilitySize
+            Group {
+                if split {
+                    HStack(spacing: 0) {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 20) {
+                                Text("Card overview").font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                                BusinessDebitCard(isFrozen: cards.isFrozen, balanceCents: cards.availableBalanceCents)
+                                if cards.isFrozen { frozenHelp }
+                                if let summary = cards.monthlySpending { CardSpendingOverview(summary: summary) }
                             }
+                            .padding(16)
                         }
+                        .frame(width: geometry.size.width / 2)
+                        .frame(maxHeight: .infinity)
+                        .overlay(alignment: .trailing) { Divider().accessibilityHidden(true) }
+                        .scrollEdgeEffectStyle(.soft, for: .top)
+                        .refreshable { await cards.refresh() }
+
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 20) {
+                                Text("Transactions").font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                                transactionFilters
+                                transactionSections
+                            }
+                            .padding(16)
+                        }
+                        .frame(width: geometry.size.width / 2)
+                        .frame(maxHeight: .infinity)
+                        .scrollEdgeEffectStyle(.soft, for: .top)
+                        .scrollPosition($scrollPosition)
+                        .refreshable { await cards.refresh() }
                     }
+                } else {
+                    stackedContent(showSpending: wideInnerDisplay)
                 }
-                transactionSections
             }
-            .padding()
-        }
-        .scrollEdgeEffectStyle(.soft, for: .top)
-        .scrollPosition($scrollPosition)
-        .task {
-            if ProcessInfo.processInfo.arguments.contains("-showCardScrolled") {
-                try? await Task.sleep(for: .milliseconds(350))
-                scrollPosition.scrollTo(edge: .bottom)
+            .navigationBarTitleDisplayMode(split ? .inline : .large)
+            .onChange(of: split, initial: true) { _, value in
+                usesSplitLayout = value
+                showsCompactCard = false
             }
         }
         .background {
@@ -203,11 +223,9 @@ struct BusinessCardView: View {
         }
         .foregroundStyle(SageActiveTheme.primaryText)
         .navigationTitle("Business card")
-        .navigationBarTitleDisplayMode(.large)
         .searchable(text: $search, prompt: "Search transactions")
-        .refreshable { await cards.refresh() }
         .toolbar {
-            if showsCompactCard {
+            if showsCompactCard && !usesSplitLayout {
                 ToolbarItem(placement: .principal) {
                     Image("business-card-background")
                         .resizable().frame(width: 38, height: 24)
@@ -262,6 +280,48 @@ struct BusinessCardView: View {
             withAnimation(.easeOut(duration: 0.4)) { freezeEffect = false }
         }
         .sensoryFeedback(.impact(weight: .medium), trigger: cards.isFrozen)
+    }
+
+    private func stackedContent(showSpending: Bool) -> some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 20) {
+                BusinessDebitCard(isFrozen: cards.isFrozen, balanceCents: cards.availableBalanceCents)
+                    .onScrollVisibilityChange(threshold: 0.01) { isVisible in
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+                            showsCompactCard = !isVisible
+                        }
+                    }
+                if cards.isFrozen { frozenHelp }
+                if showSpending, let summary = cards.monthlySpending {
+                    CardSpendingOverview(summary: summary)
+                }
+                Text("Transactions").font(.title2.bold()).accessibilityAddTraits(.isHeader)
+                transactionFilters
+                transactionSections
+            }
+            .padding()
+        }
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .scrollPosition($scrollPosition)
+        .refreshable { await cards.refresh() }
+        .task {
+            if ProcessInfo.processInfo.arguments.contains("-showCardScrolled") {
+                try? await Task.sleep(for: .milliseconds(350))
+                scrollPosition.scrollTo(edge: .bottom)
+            }
+        }
+    }
+
+    private var transactionFilters: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(CardActivityFilter.allCases, id: \.self) { option in
+                    SelectionPill(title: option.rawValue, isSelected: filter == option, variant: .salesFilter) {
+                        filter = option
+                    }
+                }
+            }
+        }
     }
 
     private var frozenHelp: some View {
@@ -437,6 +497,13 @@ struct CardFreezeEffect: View {
         formatter.dateFormat = "d MMMM yyyy"
         return formatter
     }()
+    private static let monthLabel: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_GB")
+        formatter.timeZone = DateParsing.calendar.timeZone
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter
+    }()
     private static let timestamp: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_GB")
@@ -445,6 +512,7 @@ struct CardFreezeEffect: View {
         return formatter
     }()
     static func day(_ value: Date) -> String { date.string(from: value) }
+    static func month(_ value: Date) -> String { monthLabel.string(from: value) }
     static func time(_ value: Date) -> String { timestamp.string(from: value) }
 }
 
