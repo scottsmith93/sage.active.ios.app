@@ -57,6 +57,7 @@ struct HomeView: View {
     @AppStorage("cashOutChartColour") private var cashOutColourRaw = ChartColour.caution.rawValue
     @AppStorage("dashboardSectionOrder") private var dashboardSectionOrderRaw = "banking,salesInvoices,purchaseInvoices,salesQuotes"
     @AppStorage("dashboardShowsBanking") private var dashboardShowsBanking = true
+    @AppStorage("dashboardShowsBusinessCard") private var dashboardShowsBusinessCard = true
     @AppStorage("dashboardShowsSalesInvoices") private var dashboardShowsSalesInvoices = true
     @AppStorage("dashboardShowsPurchaseInvoices") private var dashboardShowsPurchaseInvoices = true
     @AppStorage("dashboardShowsSalesQuotes") private var dashboardShowsSalesQuotes = true
@@ -89,7 +90,7 @@ struct HomeView: View {
             ScrollView {
                 LazyVStack(spacing: 16) {
                     VStack(spacing: 0) {
-                        CardDashboardApproval(cards: cards)
+                        if dashboardShowsBusinessCard { CardDashboardApproval(cards: cards) }
                         controls
                     }
                     .padding(.horizontal)
@@ -100,6 +101,7 @@ struct HomeView: View {
                             includeIva: includeIva,
                             sections: visibleDashboardSections,
                             bankingDemoState: bankingDemoState,
+                            showsBusinessCard: dashboardShowsBusinessCard,
                             salesDemoState: salesInvoiceDemoState,
                             purchaseDemoState: purchaseInvoiceDemoState,
                             hasPendingQuotes: hasPendingQuotes,
@@ -165,6 +167,7 @@ struct HomeView: View {
                 sales: $salesInvoiceDemoState,
                 purchases: $purchaseInvoiceDemoState,
                 banking: bankingDemoStateBinding,
+                showsBusinessCard: $dashboardShowsBusinessCard,
                 hasPendingQuotes: $hasPendingQuotes
             )
         }

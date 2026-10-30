@@ -1,5 +1,6 @@
 import Charts
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct FigmaInvoiceDemoState: Equatable {
     var hasMoneyOwed = true
@@ -16,6 +17,7 @@ struct FigmaDashboardOverview: View {
     let includeIva: Bool
     let sections: [DashboardSectionKind]
     let bankingDemoState: DashboardBankingDemoState
+    let showsBusinessCard: Bool
     let salesDemoState: FigmaInvoiceDemoState
     let purchaseDemoState: FigmaInvoiceDemoState
     let hasPendingQuotes: Bool
@@ -23,6 +25,9 @@ struct FigmaDashboardOverview: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var invoiceAction: OverviewInvoiceAction?
+    @State private var newSalesDocument: SalesDocumentType?
+    @State private var showsReceiptUpload = false
+    @State private var receiptNotice: DashboardReceiptNotice?
 
     var body: some View {
         VStack(spacing: SageActiveTheme.pageSpacing) {
@@ -46,13 +51,28 @@ struct FigmaDashboardOverview: View {
                 )
             }
         }
+        .fullScreenCover(item: $newSalesDocument) { type in
+            CreateSalesInvoiceView(documentType: type)
+        }
+        .fileImporter(isPresented: $showsReceiptUpload, allowedContentTypes: [.image, .pdf]) { result in
+            do {
+                let name = try DashboardReceiptUpload.save(result.get())
+                receiptNotice = .init(title: "Receipt added", message: "\(name) has been saved for review.")
+            } catch {
+                guard (error as? CocoaError)?.code != .userCancelled else { return }
+                receiptNotice = .init(title: "Receipt couldn’t be added", message: "Please choose the file again.")
+            }
+        }
+        .alert(item: $receiptNotice) { notice in
+            Alert(title: Text(notice.title), message: Text(notice.message), dismissButton: .default(Text("Done")))
+        }
     }
 
     @ViewBuilder
     private func dashboardSection(_ section: DashboardSectionKind) -> some View {
         switch section {
         case .banking:
-            BusinessCardDashboardEntry(cards: BusinessCardStore.shared)
+            if showsBusinessCard { BusinessCardDashboardEntry(cards: BusinessCardStore.shared) }
             balanceSection
         case .salesInvoices:
             invoiceSection(.sales)
@@ -300,9 +320,6 @@ struct FigmaDashboardOverview: View {
         let title = kind == .sales
             ? "There are currently no unpaid sales invoices."
             : "There are currently no unpaid purchase invoices."
-        let message = kind == .sales
-            ? "Sales invoice data will appear here."
-            : "Purchase invoice data will appear here."
         let illustration = kind == .sales
             ? "figma-sales-invoice-empty"
             : "figma-purchase-invoice-empty"
@@ -314,20 +331,21 @@ struct FigmaDashboardOverview: View {
                 .frame(width: 48, height: 48)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(title)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(SageActiveTheme.primaryText)
-                Text(message)
-                    .font(.footnote)
-                    .foregroundStyle(SageActiveTheme.supportingText)
+                emptyStateButton(kind == .sales ? "Create invoice" : "Upload receipt") {
+                    if kind == .sales { newSalesDocument = .invoices }
+                    else { showsReceiptUpload = true }
+                }
             }
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(16)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) \(message)")
+        .accessibilityElement(children: .contain)
     }
 
     private func invoiceTotals(_ kind: InvoiceKind) -> some View {
@@ -515,21 +533,28 @@ struct FigmaDashboardOverview: View {
                         .frame(width: 48, height: 48)
                         .accessibilityHidden(true)
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("There are currently no pending quotes.")
                             .font(.footnote.weight(.semibold))
-                        Text("Quote data will appear here.")
-                            .font(.footnote)
+                        emptyStateButton("Create quote") { newSalesDocument = .quotes }
                     }
                     .foregroundStyle(SageActiveTheme.primaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(16)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("There are currently no pending quotes. Quote data will appear here.")
+                .accessibilityElement(children: .contain)
             }
         }
+    }
+
+    private func emptyStateButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: "plus")
+                .labelStyle(.titleAndIcon)
+        }
+        .buttonStyle(DashboardEmptyStateButtonStyle())
     }
 
     private func quoteMetric(
@@ -604,6 +629,7 @@ struct FigmaInvoiceDemoControlsSheet: View {
     @Binding var sales: FigmaInvoiceDemoState
     @Binding var purchases: FigmaInvoiceDemoState
     @Binding var banking: DashboardBankingDemoState
+    @Binding var showsBusinessCard: Bool
     @Binding var hasPendingQuotes: Bool
 
     @Environment(\.dismiss) private var dismiss
@@ -611,6 +637,14 @@ struct FigmaInvoiceDemoControlsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Toggle("Show business card", isOn: $showsBusinessCard)
+                        .tint(SageActiveTheme.brand)
+                } header: {
+                    Text("Business debit card")
+                } footer: {
+                    Text("Turn off to preview the dashboard for someone without a business card.")
+                }
                 Section {
                     Picker("Banking card state", selection: $banking) {
                         ForEach(DashboardBankingDemoState.allCases) { state in

@@ -65,6 +65,8 @@ struct CreateSalesInvoiceView: View {
     @State private var summaryExpanded = false
     @State private var hasPresentedInitialQASheet = false
     private let automaticallyShowProducts: Bool
+    private let documentType: SalesDocumentType
+    private var isQuote: Bool { documentType == .quotes }
 
     private var subtotalCents: Int {
         lineItems.reduce(0) { $0 + $1.taxableAmountCents }
@@ -78,6 +80,7 @@ struct CreateSalesInvoiceView: View {
     private var canCreate: Bool { customer != nil && !lineItems.isEmpty }
 
     init(
+        documentType: SalesDocumentType = .invoices,
         prefilledDraft: Bool = false,
         prefilledCustomer: InvoiceCustomer? = nil,
         automaticallyShowProducts: Bool = false
@@ -98,6 +101,8 @@ struct CreateSalesInvoiceView: View {
             || arguments.contains("-showCreateInvoiceProductDetails")
             || arguments.contains("-showCreateInvoiceComplete")
         self.automaticallyShowProducts = automaticallyShowProducts
+        self.documentType = documentType
+        _documentPrefix = State(initialValue: documentType == .quotes ? "SQ-" : "SI-")
         _customer = State(initialValue: prefilledCustomer ?? (hasCustomer ? sampleCustomer : nil))
         _fulfilmentDate = State(initialValue: nil)
         _lineItems = State(initialValue: prefilledDraft || arguments.contains("-showCreateInvoiceComplete") ? [sampleLine] : [])
@@ -124,6 +129,7 @@ struct CreateSalesInvoiceView: View {
                     )
 
                     InvoiceDateGroup(
+                        dateTitle: isQuote ? "Quote date" : "Invoice date",
                         invoiceDate: formatted(invoiceDate),
                         fulfilmentDate: fulfilmentDate.map(formatted),
                         onSelectInvoiceDate: {
@@ -147,7 +153,7 @@ struct CreateSalesInvoiceView: View {
                 .padding(.bottom, canCreate ? 150 : 24)
             }
             .background(SageActiveTheme.pageBackground)
-            .navigationTitle("Create sales invoice")
+            .navigationTitle(isQuote ? "Create sales quote" : "Create sales invoice")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -164,6 +170,7 @@ struct CreateSalesInvoiceView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if canCreate {
                     InvoiceSummaryFooter(
+                        title: isQuote ? "Quote summary" : "Invoice summary",
                         subtotalCents: subtotalCents,
                         ivaCents: ivaCents,
                         totalCents: totalCents,
@@ -189,10 +196,10 @@ struct CreateSalesInvoiceView: View {
             } message: {
                 Text("If you choose to discard, you'll lose any changes you have not saved")
             }
-            .alert("Sales invoice created", isPresented: $showsCreatedConfirmation) {
+            .alert(isQuote ? "Sales quote created" : "Sales invoice created", isPresented: $showsCreatedConfirmation) {
                 Button("Done") { dismiss() }
             } message: {
-                Text("The fictional invoice has been created for this prototype.")
+                Text(isQuote ? "The fictional quote has been created for this prototype." : "The fictional invoice has been created for this prototype.")
             }
         }
     }
@@ -258,7 +265,7 @@ struct CreateSalesInvoiceView: View {
 
         case .invoiceDate:
             InvoiceDateSelectionSheet(
-                title: "Invoice date",
+                title: isQuote ? "Quote date" : "Invoice date",
                 initialDate: invoiceDate,
                 allowsClear: false
             ) { selectedDate in
@@ -281,7 +288,7 @@ struct CreateSalesInvoiceView: View {
 
         case .prefixes:
             DocumentPrefixSelectionSheet(
-                prefixes: CreateInvoiceFixtures.prefixes,
+                prefixes: isQuote ? ["SQ-", "QUO-", "2026-"] : CreateInvoiceFixtures.prefixes,
                 selection: documentPrefix
             ) { prefix in
                 documentPrefix = prefix
@@ -457,6 +464,7 @@ private struct InvoiceCustomerDetailRow: View {
 }
 
 private struct InvoiceDateGroup: View {
+    let dateTitle: String
     let invoiceDate: String
     let fulfilmentDate: String?
     let onSelectInvoiceDate: () -> Void
@@ -465,7 +473,7 @@ private struct InvoiceDateGroup: View {
     var body: some View {
         VStack(spacing: 0) {
             InvoiceDateRow(
-                label: "Invoice date",
+                label: dateTitle,
                 value: invoiceDate,
                 required: true,
                 isPlaceholder: false,
@@ -657,6 +665,7 @@ struct SalesLineItemCard: View {
 }
 
 private struct InvoiceSummaryFooter: View {
+    let title: String
     let subtotalCents: Int
     let ivaCents: Int
     let totalCents: Int
@@ -669,7 +678,7 @@ private struct InvoiceSummaryFooter: View {
                 withAnimation(.snappy) { isExpanded.toggle() }
             } label: {
                 HStack {
-                    Text("Invoice summary")
+                    Text(title)
                         .font(.caption)
                     Spacer()
                     SageCarbonIconView(

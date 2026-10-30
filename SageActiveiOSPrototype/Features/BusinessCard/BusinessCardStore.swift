@@ -29,11 +29,34 @@ struct CardTransaction: Identifiable, Equatable {
 /// Replace this boundary when a real card service is introduced.
 protocol BusinessCardDataSource {
     var availableBalanceCents: Int { get }
+    var spendingPolicy: CardSpendingPolicy { get }
     func transactions() -> [CardTransaction]
+}
+
+/// Issuer-owned settings: the cardholder can view these, but cannot edit them.
+struct CardSpendingPolicy {
+    let monthlyLimitCents: Int
+    let perTransactionLimitCents: Int
+    let onlinePaymentsEnabled: Bool
+    let recurringPaymentsEnabled: Bool
+}
+
+struct CardMonthlySpending {
+    let month: Date
+    let spentCents: Int
+    let policy: CardSpendingPolicy
+
+    var remainingCents: Int { max(0, policy.monthlyLimitCents - spentCents) }
+    var progress: Double {
+        guard policy.monthlyLimitCents > 0 else { return 0 }
+        return min(1, max(0, Double(spentCents) / Double(policy.monthlyLimitCents)))
+    }
 }
 
 struct FictionalBusinessCardDataSource: BusinessCardDataSource {
     let availableBalanceCents = 5_000_000
+    let spendingPolicy = CardSpendingPolicy(monthlyLimitCents: 100_000, perTransactionLimitCents: 25_000,
+                                          onlinePaymentsEnabled: true, recurringPaymentsEnabled: false)
     func transactions() -> [CardTransaction] {
         let rows: [(String, String, String, Int, String, String, Bool)] = [
             ("purchase", "Papel y Tinta Studio", "Office supplies", 4880, "2026-08-06T10:18:00+02:00", "contactless", false),
@@ -121,6 +144,19 @@ final class BusinessCardStore {
     }
 
     var availableBalanceCents: Int { source.availableBalanceCents }
+
+    var monthlySpending: CardMonthlySpending? {
+        // Anchor the research scenario to its latest fixture month, rather than
+        // moving fictional August transactions into the device's current month.
+        guard let latest = transactions.map(\.date).max(),
+              let month = DateParsing.calendar.dateInterval(of: .month, for: latest) else { return nil }
+        let spent = transactions.reduce(0) { total, transaction in
+            guard month.contains(transaction.date), decisions[transaction.id] != "Declined",
+                  !transaction.requiresApproval || decisions[transaction.id] == "Approved" else { return total }
+            return total + transaction.amountCents
+        }
+        return .init(month: month.start, spentCents: max(0, spent), policy: source.spendingPolicy)
+    }
 
     func refresh() async {
         await Task.yield()
